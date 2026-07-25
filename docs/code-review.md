@@ -2,13 +2,13 @@
 
 **Repo:** https://github.com/ngiotsas/erhomai-app
 **Reviewed at:** `main`, 3 commits, 2026-07-25
+**Status:** All P0–P2 items are closed as of commit `5cbe2f6`. Two P3 items remain open (see end of document).
 **Scope:** full repo (Express backend in `src/`, React + Vite + Leaflet frontend in `app/`)
 
 ## How to use this document
 
 Findings are grouped by priority. Each item states the location, the defect, the fix, and a
-check that proves the fix worked. Work top to bottom. P0 and P1 are worth doing before the
-site takes real traffic; P2 and P3 are cleanup.
+check that proves the fix worked. Closed items are marked ✓.
 
 Nothing here requires a redesign. The architecture is sound: the backend/frontend split is
 justified by the upstream API's lack of HTTPS-by-default and CORS, the TTL cache with
@@ -431,13 +431,11 @@ These are correct and should survive any refactor:
 - The Greek comments in the backend. They explain why rather than what, which is the useful
   kind.
 
-## Suggested commit sequence
+## Suggested commit sequence (completed)
 
-1. P0-1 attribution (one file, no behaviour change elsewhere)
-2. P1-1 language detection, P1-5 plurals, P1-6 distance unit (i18n only)
-3. P2-1 tests for `geo.js` and `transliterate.js`, red at first
-4. P1-7 transliteration fixes, turning those tests green
-5. P1-2 and P1-3 polling behaviour
-6. P1-4 and P1-8 display and resilience
-7. P0-2 rate limiting and service-area bounds, P0-3 cache eviction, P2-2 validation
-8. P2 cleanup, then P3 as convenient
+All P0–P2 items were closed in commits `39c5678` through `5cbe2f6`. Two P3 items remain open:
+
+- `createStopIcon` in `MapView.jsx` builds an `L.divIcon` per stop per render (low cost at current data volumes).
+- No ESLint configuration (useful if the codebase grows).
+
+The only open design question in the codebase is documented in the root `todo.md` (English map tiles).
