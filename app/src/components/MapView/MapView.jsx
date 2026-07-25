@@ -8,7 +8,9 @@ import { FETCH_STATES } from '../../hooks/useArrivals.js';
 import styles from './MapView.module.css';
 
 const TILES_EL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const ATTR_EL = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 const TILES_EN = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+const ATTR_EN = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
 
 function createStopIcon(isSelected) {
   const color = isSelected ? '#fff' : '#111';
@@ -79,6 +81,7 @@ export default function MapView({
   const userMarkerIcon = useMemo(() => userIcon(), []);
 
   const tileUrl = lang === 'en' ? TILES_EN : TILES_EL;
+  const tileAttr = lang === 'en' ? ATTR_EN : ATTR_EL;
 
   if (!coords) return null;
 
@@ -90,13 +93,13 @@ export default function MapView({
           zoom={15}
           className={styles.map}
           zoomControl={false}
-          attributionControl={false}
           keyboard={true}
         >
           <TileLayer
             key={lang}
             url={tileUrl}
             maxZoom={19}
+            attribution={tileAttr}
           />
 
           <Marker
