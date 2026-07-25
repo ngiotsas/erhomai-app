@@ -1,0 +1,14 @@
+.wrapper {
+  font-size: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  background: #f9f9f9;
+}
+
+.error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}

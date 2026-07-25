@@ -1,0 +1,212 @@
+.outer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mapWrapper {
+  position: relative;
+  width: 100%;
+  height: min(65vh, 500px);
+  min-height: 350px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+@media (max-height: 600px) {
+  .mapWrapper {
+    height: 45vh;
+    min-height: 250px;
+  }
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Pin markers ── */
+
+.pin,
+.pinSelected {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid #111;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.pin::after,
+.pinSelected::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #111;
+  margin-left: -5px;
+}
+
+.pinSelected {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  box-shadow: 0 2px 6px rgba(26, 86, 219, 0.4);
+}
+
+.pinSelected::after {
+  border-top-color: var(--color-accent);
+}
+
+/* ── User location dot ── */
+
+.userDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Re-center button ── */
+
+.recenter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 600;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.recenter:hover {
+  background: #f2f2f2;
+}
+
+/* ── Floating hint ── */
+
+.hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--color-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 500;
+}
+
+/* ── Arrivals panel ── */
+
+.panel {
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--color-bg);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 8px;
+}
+
+.panelStopName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panelStopDetails {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.panelClose {
+  flex-shrink: 0;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: var(--color-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  width: auto;
+  padding: 0 8px;
+}
+
+.panelClose:hover {
+  background: #f2f2f2;
+}
+
+.panelBody {
+  padding: 0;
+}
+
+.arrivalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.staleIndicator {
+  font-size: 11px;
+  color: var(--color-muted);
+  text-align: center;
+  padding: 6px 0 8px;
+}
+
+/* ── Popup ── */
+
+.popup {
+  font-family: inherit;
+  line-height: 1.3;
+}
+
+.popupName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.popupStreet {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.popupDistance {
+  font-size: 11px;
+  color: var(--color-accent);
+  margin-top: 2px;
+}

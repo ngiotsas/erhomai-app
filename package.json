@@ -1,0 +1,22 @@
+{
+  "name": "oasa-arrivals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Αφίξεις λεωφορείων ΟΑΣΑ για την πλησιέστερη στάση",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "dev:ui": "node --watch src/server.js & npm --prefix app run dev",
+    "build:ui": "npm --prefix app run build"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
+}

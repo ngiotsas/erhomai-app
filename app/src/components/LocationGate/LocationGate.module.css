@@ -1,0 +1,39 @@
+.wrapper {
+  padding: 32px 0;
+  text-align: center;
+}
+
+.text {
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-top: 8px;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.button {
+  margin-top: 4px;
+  padding: 10px 24px;
+  min-height: var(--touch-target-min);
+  font-size: 14px;
+  color: var(--color-bg);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
