@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export const GEOLOCATION_STATES = {
   PENDING: 'pending',
@@ -10,11 +10,6 @@ export const GEOLOCATION_STATES = {
 export function useGeolocation() {
   const [state, setState] = useState(GEOLOCATION_STATES.PENDING);
   const [coords, setCoords] = useState(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
-  }, []);
 
   const requestPosition = useCallback((resetCoords = false) => {
     if (!navigator.geolocation) {
@@ -29,7 +24,6 @@ export function useGeolocation() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        if (!mountedRef.current) return;
         setCoords({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -37,7 +31,6 @@ export function useGeolocation() {
         setState(GEOLOCATION_STATES.READY);
       },
       (error) => {
-        if (!mountedRef.current) return;
         if (error.code === error.PERMISSION_DENIED) {
           setState(GEOLOCATION_STATES.DENIED);
         } else {
