@@ -1,58 +1,25 @@
-import { useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { Map, NavigationControl, Marker, Popup } from 'maplibre-gl';
 import { useTranslation } from '../../i18n.jsx';
+import { createStyle } from '../../mapStyle.js';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
 import { FETCH_STATES } from '../../hooks/useArrivals.js';
 import styles from './MapView.module.css';
 
-const TILES_EL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-const ATTR_EL = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
-const TILES_EN = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
-const ATTR_EN = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
-
-function createStopIcon(isSelected) {
+function createStopElement(isSelected) {
+  const el = document.createElement('div');
+  const cls = isSelected ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
+  el.className = cls;
   const color = isSelected ? '#fff' : '#111';
-  const svg = `<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  el.innerHTML = `<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 <rect x="0" y="2" width="22" height="10" rx="2" stroke="${color}" stroke-width="1.5"/>
 <rect x="3" y="4" width="7" height="4" rx="1" fill="${color}" opacity="0.2"/>
 <rect x="11" y="4" width="8" height="4" rx="1" fill="${color}" opacity="0.2"/>
 <circle cx="4.5" cy="13.5" r="1.5" fill="${color}"/>
 <circle cx="17.5" cy="13.5" r="1.5" fill="${color}"/>
 </svg>`;
-  return L.divIcon({
-    className: `${styles.pin} ${isSelected ? styles.pinSelected : ''}`,
-    html: svg,
-    iconSize: [34, 40],
-    iconAnchor: [17, 40],
-    popupAnchor: [0, -36],
-  });
-}
-
-function userIcon() {
-  return L.divIcon({
-    className: styles.userDot,
-    html: '',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-}
-
-function RecenterButton({ coords, label }) {
-  const map = useMap();
-  return (
-    <button
-      className={styles.recenter}
-      onClick={() => map.setView([coords.lat, coords.lng], 15)}
-      aria-label={label}
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
-        <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </button>
-  );
+  return el;
 }
 
 export default function MapView({
@@ -65,78 +32,133 @@ export default function MapView({
   arrivalsState,
 }) {
   const { lang, t, display, alternate } = useTranslation();
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef({});
+  const userMarkerRef = useRef(null);
+
   const selectedStopData = useMemo(
     () => stops.find((s) => s.code === selectedStop),
     [stops, selectedStop],
   );
 
   const handleStopSelect = useCallback(
-    (code) => {
-      onStopSelect(code);
-    },
+    (code) => { onStopSelect(code); },
     [onStopSelect],
   );
 
-  const userMarkerIcon = useMemo(() => userIcon(), []);
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
 
-  const tileUrl = lang === 'en' ? TILES_EN : TILES_EL;
-  const tileAttr = lang === 'en' ? ATTR_EN : ATTR_EL;
+    const map = new Map({
+      container: containerRef.current,
+      style: createStyle(lang),
+      center: [coords.lng, coords.lat],
+      zoom: 15,
+      attributionControl: true,
+    });
+
+    map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(createStyle(lang), { diff: false });
+  }, [lang]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    Object.values(markersRef.current).forEach((m) => m.remove());
+    markersRef.current = {};
+
+    stops.forEach((stop) => {
+      const isSelected = stop.code === selectedStop;
+      const el = createStopElement(isSelected);
+      el.title = display(stop.name, stop.nameEn);
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('click', () => handleStopSelect(stop.code));
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleStopSelect(stop.code);
+        }
+      });
+
+      const popupHtml = `<div class="${styles.popup}">
+        <p class="${styles.popupName}">${display(stop.name, stop.nameEn)}</p>
+        ${display(stop.street, stop.streetEn) ? `<p class="${styles.popupStreet}">${display(stop.street, stop.streetEn)}</p>` : ''}
+        <p class="${styles.popupDistance}">${stop.distanceMeters} ${t.metersShort}</p>
+      </div>`;
+
+      const marker = new Marker({
+        element: el,
+        anchor: 'bottom',
+        offset: [0, -4],
+      })
+        .setLngLat([stop.lng, stop.lat])
+        .setPopup(new Popup({ offset: 28, closeButton: false })
+          .setHTML(popupHtml))
+        .addTo(map);
+
+      markersRef.current[stop.code] = marker;
+    });
+  }, [stops, selectedStop, lang, display, t, handleStopSelect]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !coords) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+
+    const el = document.createElement('div');
+    el.className = styles.userDot;
+
+    userMarkerRef.current = new Marker({ element: el })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(map);
+  }, [coords]);
+
+  const handleRecenter = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !coords) return;
+    map.flyTo({ center: [coords.lng, coords.lat], zoom: 15 });
+  }, [coords]);
+
+  const tileStyle = useMemo(() => createStyle(lang), [lang]);
 
   if (!coords) return null;
 
   return (
     <div className={styles.outer}>
       <div className={styles.mapWrapper} role="region" aria-label={t.mapRegion}>
-        <MapContainer
-          center={[coords.lat, coords.lng]}
-          zoom={15}
+        <div
+          ref={containerRef}
           className={styles.map}
-          zoomControl={false}
-          keyboard={true}
+        />
+
+        <button
+          className={styles.recenter}
+          onClick={handleRecenter}
+          aria-label={t.centerMap}
         >
-          <TileLayer
-            key={lang}
-            url={tileUrl}
-            maxZoom={19}
-            attribution={tileAttr}
-          />
-
-          <Marker
-            position={[coords.lat, coords.lng]}
-            icon={userMarkerIcon}
-            interactive={false}
-            zIndexOffset={1000}
-          />
-
-          {stops.map((stop) => {
-            const isSelected = stop.code === selectedStop;
-            const icon = createStopIcon(isSelected);
-            const title = display(stop.name, stop.nameEn);
-            return (
-              <Marker
-                key={stop.code}
-                position={[stop.lat, stop.lng]}
-                icon={icon}
-                zIndexOffset={isSelected ? 2000 : 0}
-                keyboard={true}
-                title={title}
-                eventHandlers={{ click: () => handleStopSelect(stop.code) }}
-              >
-                <Popup>
-                  <div className={styles.popup}>
-                    <p className={styles.popupName}>{title}</p>
-                    {display(stop.street, stop.streetEn) && (
-                      <p className={styles.popupStreet}>{display(stop.street, stop.streetEn)}</p>
-                    )}
-                    <p className={styles.popupDistance}>{stop.distanceMeters} {t.metersShort}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-
-          <RecenterButton coords={coords} label={t.centerMap} />
-        </MapContainer>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
 
         {!selectedStop && (
           <p className={styles.hint}>{t.tapStopHint}</p>

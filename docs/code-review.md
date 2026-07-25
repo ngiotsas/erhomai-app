@@ -435,7 +435,17 @@ These are correct and should survive any refactor:
 
 All P0–P2 items were closed in commits `39c5678` through `5cbe2f6`. Two P3 items remain open:
 
-- `createStopIcon` in `MapView.jsx` builds an `L.divIcon` per stop per render (low cost at current data volumes).
+- `createStopElement` in `MapView.jsx` builds a DOM element per stop per render (low cost at current data volumes).
 - No ESLint configuration (useful if the codebase grows).
 
-The only open design question in the codebase is documented in the root `todo.md` (English map tiles).
+## Licensing update (2026-07-25)
+
+The original CARTO/ESRI tile licensing questions are resolved by switching to OpenFreeMap vector tiles:
+
+- ESRI tiles (anonymous commercial use questionable) → OpenFreeMap Positron style (MIT license)
+- CARTO tiles (attribution + volume thresholds) → OpenFreeMap Positron style (open-source, no usage limits)
+- Attribution is automatic via MapLibre GL's built-in control (OpenMapTiles + OpenStreetMap contributors)
+- Language switching: `name` for Greek labels, `coalesce(name_en, name)` for English labels
+- Leaflet replaced by MapLibre GL JS for vector tile rendering
+
+The `todo.md` is updated accordingly.
