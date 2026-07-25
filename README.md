@@ -68,6 +68,18 @@ The server listens on port 3000 and serves the built frontend from `app/dist/`. 
 PORT=8080 npm start
 ```
 
+When deploying behind a reverse proxy (Caddy, nginx), set `TRUST_PROXY` to the number of proxy hops so the rate limiter sees real client IPs:
+
+```bash
+TRUST_PROXY=1 npm start
+```
+
+## Tests
+
+```bash
+npm test
+```
+
 ## Check that it works
 
 ```bash
@@ -222,6 +234,12 @@ erhomai.gr {
 }
 ```
 
+Start the server with `TRUST_PROXY=1` so the rate limiter sees real client IPs instead of the proxy's:
+
+```bash
+TRUST_PROXY=1 npm start
+```
+
 HTTPS is mandatory, not a nicety. Without a valid certificate the browser will never give you the user's location, and the site has nothing to show.
 
 ## Known rough edges
@@ -230,7 +248,7 @@ HTTPS is mandatory, not a nicety. Without a valid certificate the browser will n
 
 **Silent empty results.** When OASA returns an error object instead of an array, the client turns it into an empty list. Users see "no arrivals" rather than an error. The upstream API has no consistent error format to detect, so distinguishing the two cases reliably is not possible today.
 
-**No rate limiting toward OASA.** Caching and singleflight cut the request volume a lot, but under real traffic you should add a concurrency limit in `src/oasaClient.js` before OASA starts refusing your IP address.
+**Attica-only.** `/api/stops` rejects coordinates outside the Athens metropolitan area (37.6–38.4°N, 23.3–24.2°E) with a dedicated message. If OASA ever adds service outside Attica, expand the bounding box in `src/geo.js`.
 
 **English map tiles.** The English mode uses ESRI World Street Map as a fallback; it doesn't render OSM `name:en` tags. OpenFreeMap vector tiles (see `todo.md`) are the planned open-source fix.
 

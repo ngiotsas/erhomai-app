@@ -15,6 +15,7 @@ export function useArrivals(stopCode) {
   const [state, setState] = useState(FETCH_STATES.IDLE);
   const [secondsAgo, setSecondsAgo] = useState(0);
   const activeStopRef = useRef(stopCode);
+  const lastFetchRef = useRef(0);
 
   const fetchArrivals = useCallback(async (code, { background = false } = {}) => {
     if (!code) return;
@@ -52,11 +53,13 @@ export function useArrivals(stopCode) {
     setSecondsAgo(0);
 
     fetchArrivals(stopCode);
+    lastFetchRef.current = Date.now();
 
     const tick = () => {
-      if (document.visibilityState === 'visible') {
-        fetchArrivals(stopCode, { background: true });
-      }
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastFetchRef.current < 10000) return;
+      lastFetchRef.current = Date.now();
+      fetchArrivals(stopCode, { background: true });
     };
     const poll = setInterval(tick, POLL_INTERVAL_MS);
     const onVisibilityChange = () => {

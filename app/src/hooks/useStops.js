@@ -5,6 +5,7 @@ export const FETCH_STATES = {
   LOADING: 'loading',
   READY: 'ready',
   ERROR: 'error',
+  OUTSIDE_AREA: 'outside_area',
 };
 
 export function useStops(lat, lng) {
@@ -16,7 +17,14 @@ export function useStops(lat, lng) {
     setState(FETCH_STATES.LOADING);
     try {
       const res = await fetch(`/api/stops?lat=${lat}&lng=${lng}&limit=5`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.error === 'outside_service_area') {
+          setState(FETCH_STATES.OUTSIDE_AREA);
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = await res.json();
       setStops(Array.isArray(data.stops) ? data.stops : []);
       setState(FETCH_STATES.READY);

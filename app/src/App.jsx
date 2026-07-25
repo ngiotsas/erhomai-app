@@ -84,6 +84,10 @@ export default function App() {
         <StatusMessage type="error" message={t.telematicsDown} />
       )}
 
+      {stopsState === STOPS_STATES.OUTSIDE_AREA && (
+        <StatusMessage type="status" message={t.outsideServiceArea} />
+      )}
+
       {stopsState === STOPS_STATES.READY && stops.length === 0 && (
         <StatusMessage type="status" message={t.noStopsFound} />
       )}

@@ -16,6 +16,11 @@ if (!Number.isFinite(PORT) || PORT < 1 || PORT > 65535) {
 const app = express();
 app.disable('x-powered-by');
 
+const TRUST_PROXY = Number.parseInt(process.env.TRUST_PROXY ?? '0', 10);
+if (Number.isFinite(TRUST_PROXY) && TRUST_PROXY > 0) {
+  app.set('trust proxy', TRUST_PROXY);
+}
+
 app.use('/api', rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -30,7 +35,7 @@ const hasDist = existsSync(distPath);
 
 if (hasDist) {
   app.use('/assets', express.static(join(distPath, 'assets'), {
-    maxAge: '31536000',
+    maxAge: '1y',
     immutable: true,
   }));
   app.use(express.static(distPath, {

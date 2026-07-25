@@ -1,5 +1,4 @@
 import { Component } from 'react';
-import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -22,7 +21,12 @@ export default class ErrorBoundary extends Component {
           <h1 style={{ fontSize: 18, fontWeight: 600, paddingBottom: 8, borderBottom: '1px solid #d4d4d4' }}>
             Έρχομαι
           </h1>
-          <StatusMessage type="error" message="Το σύστημα τηλεματικής του ΟΑΣΑ δεν απαντάει αυτή τη στιγμή." />
+          <div style={{
+            fontSize: 14, padding: '12px 16px', borderRadius: 6, marginTop: 16,
+            border: '1px solid #fca5a5', color: '#b91c1c', background: '#fef2f2',
+          }}>
+            <p>Κάτι πήγε στραβά.</p>
+          </div>
         </main>
       );
     }

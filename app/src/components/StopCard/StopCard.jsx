@@ -39,8 +39,7 @@ export default function StopCard({
           <h2 className={styles.stopName}>{display(stop.name, stop.nameEn)}</h2>
           <p className={styles.stopDetails}>
             {display(stop.street, stop.streetEn) && `${display(stop.street, stop.streetEn)} · `}
-            {altName && `${altName} · `}
-            {stop.distanceMeters} {t.metersShort}
+            {altName && altName}
           </p>
         </div>
       </button>
