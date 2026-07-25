@@ -8,7 +8,7 @@
 ## How to use this document
 
 Findings are grouped by priority. Each item states the location, the defect, the fix, and a
-check that proves the fix worked. Closed items are marked ✓.
+check that proves the fix worked.
 
 Nothing here requires a redesign. The architecture is sound: the backend/frontend split is
 justified by the upstream API's lack of HTTPS-by-default and CORS, the TTL cache with
