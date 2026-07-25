@@ -20,18 +20,26 @@ export const translations = {
     nearbyStops: 'Κοντινές στάσεις',
     loadingArrivals: 'Φόρτωση αφίξεων…',
     noArrivals: 'Καμία άφιξη αυτή τη στιγμή.',
-    secondsAgo: (n) => `πριν από ${n} δευτερόλεπτα`,
+    secondsAgo: (n) => {
+      if (n === 0) return 'τώρα';
+      return `πριν από ${n} ${n === 1 ? 'δευτερόλεπτο' : 'δευτερόλεπτα'}`;
+    },
     tapStopHint: 'Πάτησε μια στάση για τις αφίξεις',
     centerMap: 'Κέντρο χάρτη στην τοποθεσία μου',
     closePanel: 'Κλείσιμο πληροφοριών στάσης',
     arrivalsForStop: (name) => `Αφίξεις για τη στάση ${name}`,
     arrivalsLabel: 'Αφίξεις',
-    inMinutes: (n) => `σε ${n} λεπτά`,
+    inMinutes: (n) => {
+      if (n === 0) return 'τώρα';
+      return `σε ${n} ${n === 1 ? 'λεπτό' : 'λεπτά'}`;
+    },
     soon: 'σύντομα',
     lineLabel: (id) => `Γραμμή ${id}`,
     stopLabel: (name, meters) => `Στάση ${name}, ${meters} μέτρα`,
     mapRegion: 'Χάρτης με κοντινές στάσεις',
     telematicsDownShort: 'Το σύστημα τηλεματικής δεν απαντάει.',
+    metersShort: 'μ',
+    outsideServiceArea: 'Οι στάσεις του ΟΑΣΑ καλύπτουν μόνο την Αττική.',
   },
   en: {
     appTitle: 'Erhomai',
@@ -49,22 +57,43 @@ export const translations = {
     nearbyStops: 'Nearby stops',
     loadingArrivals: 'Loading arrivals…',
     noArrivals: 'No arrivals at this time.',
-    secondsAgo: (n) => `${n} second${n !== 1 ? 's' : ''} ago`,
+    secondsAgo: (n) => {
+      if (n === 0) return 'now';
+      return `${n} second${n !== 1 ? 's' : ''} ago`;
+    },
     tapStopHint: 'Tap a stop for arrivals',
     centerMap: 'Center map on my location',
     closePanel: 'Close stop info',
     arrivalsForStop: (name) => `Arrivals for ${name}`,
     arrivalsLabel: 'Arrivals',
-    inMinutes: (n) => `in ${n} minute${n !== 1 ? 's' : ''}`,
+    inMinutes: (n) => {
+      if (n === 0) return 'now';
+      return `in ${n} minute${n !== 1 ? 's' : ''}`;
+    },
     soon: 'soon',
     lineLabel: (id) => `Line ${id}`,
     stopLabel: (name, meters) => `Stop ${name}, ${meters} meters away`,
     mapRegion: 'Map with nearby stops',
     telematicsDownShort: 'The telematics system is not responding.',
+    metersShort: 'm',
+    outsideServiceArea: 'OASA stops cover the Athens metropolitan area only.',
   },
 };
 
-const LangContext = createContext({ lang: 'el', setLang: () => {}, t: translations.el });
+const defaultDisplay = (greekText, englishText) => {
+  if (!greekText) return englishText ?? greekText;
+  return greekText;
+};
+const defaultAlternate = () => null;
+const defaultContext = {
+  lang: 'el',
+  setLang: () => {},
+  t: translations.el,
+  display: defaultDisplay,
+  alternate: defaultAlternate,
+};
+
+const LangContext = createContext(defaultContext);
 
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
@@ -72,9 +101,7 @@ export function LangProvider({ children }) {
       const stored = localStorage.getItem(LANG_KEY);
       if (stored === 'el' || stored === 'en') return stored;
     } catch {}
-    const browserLang = navigator.language?.split('-')[0];
-    if (browserLang === 'el') return 'el';
-    return 'el';
+    return navigator.language?.split('-')[0] === 'el' ? 'el' : 'en';
   });
 
   const setLang = useCallback((l) => {
@@ -88,16 +115,20 @@ export function LangProvider({ children }) {
 
   const t = translations[lang];
 
-  const display = useMemo(() => {
-    return (greekText, englishText) => {
-      if (!greekText) return englishText ?? greekText;
-      if (lang === 'el') return greekText;
-      return englishText ?? toLatin(greekText);
-    };
+  const display = useCallback((greekText, englishText) => {
+    if (!greekText) return englishText ?? greekText;
+    if (lang === 'el') return greekText;
+    return englishText ?? toLatin(greekText);
   }, [lang]);
 
+  const alternate = useCallback((greekText, englishText) => {
+    return lang === 'el' ? englishText : greekText;
+  }, [lang]);
+
+  const value = useMemo(() => ({ lang, setLang, t, display, alternate }), [lang, setLang, t, display, alternate]);
+
   return (
-    <LangContext.Provider value={{ lang, setLang, t, display }}>
+    <LangContext.Provider value={value}>
       {children}
     </LangContext.Provider>
   );

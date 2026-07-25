@@ -14,24 +14,24 @@ export function useArrivals(stopCode) {
   const [fetchedAt, setFetchedAt] = useState(null);
   const [state, setState] = useState(FETCH_STATES.IDLE);
   const [secondsAgo, setSecondsAgo] = useState(0);
-  const timerRef = useRef(null);
   const activeStopRef = useRef(stopCode);
 
-  const fetchArrivals = useCallback(async (code) => {
+  const fetchArrivals = useCallback(async (code, { background = false } = {}) => {
     if (!code) return;
-    setState(FETCH_STATES.LOADING);
+    if (!background) setState(FETCH_STATES.LOADING);
     try {
       const res = await fetch(`/api/arrivals?stop=${code}`);
-      if (!res.ok) throw new Error(res.status);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (activeStopRef.current !== code) return;
-      setArrivals(data.arrivals);
+      setArrivals(data.arrivals ?? []);
       setFetchedAt(Date.now());
       setSecondsAgo(0);
       setState(FETCH_STATES.READY);
-    } catch {
+    } catch (error) {
+      console.error('[arrivals]', error);
       if (activeStopRef.current !== code) return;
-      setState(FETCH_STATES.ERROR);
+      if (!background) setState(FETCH_STATES.ERROR);
     }
   }, []);
 
@@ -53,25 +53,33 @@ export function useArrivals(stopCode) {
 
     fetchArrivals(stopCode);
 
-    const poll = setInterval(() => {
-      fetchArrivals(stopCode);
-    }, POLL_INTERVAL_MS);
+    const tick = () => {
+      if (document.visibilityState === 'visible') {
+        fetchArrivals(stopCode, { background: true });
+      }
+    };
+    const poll = setInterval(tick, POLL_INTERVAL_MS);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tick();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
-    return () => clearInterval(poll);
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [stopCode, fetchArrivals]);
 
   useEffect(() => {
-    if (state !== FETCH_STATES.READY || !fetchedAt) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-      return;
-    }
+    if (state !== FETCH_STATES.READY || !fetchedAt) return;
 
-    timerRef.current = setInterval(() => {
+    const id = setInterval(() => {
       setSecondsAgo(Math.floor((Date.now() - fetchedAt) / 1000));
     }, 1000);
 
-    return () => clearInterval(timerRef.current);
+    return () => clearInterval(id);
   }, [state, fetchedAt]);
 
   return { arrivals, fetchedAt, secondsAgo, state };

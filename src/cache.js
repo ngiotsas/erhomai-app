@@ -10,11 +10,17 @@ const inFlight = new Map(); // key -> Promise
 
 function deleteExpiredEntries() {
   const now = Date.now();
-  const expiredKeys = [];
   for (const [key, entry] of entries) {
-    if (entry.expiresAt <= now) expiredKeys.push(key);
+    if (entry.expiresAt <= now) entries.delete(key);
   }
-  for (const key of expiredKeys) entries.delete(key);
+}
+
+function evictOldest() {
+  if (entries.size <= MAX_ENTRIES) return;
+  for (const [key] of entries) {
+    entries.delete(key);
+    if (entries.size <= MAX_ENTRIES) break;
+  }
 }
 
 /**
@@ -24,7 +30,11 @@ function deleteExpiredEntries() {
  */
 export async function cached(key, ttlMs, produce) {
   const hit = entries.get(key);
-  if (hit && hit.expiresAt > Date.now()) return hit.value;
+  if (hit && hit.expiresAt > Date.now()) {
+    entries.delete(key);
+    entries.set(key, hit);
+    return hit.value;
+  }
 
   const pending = inFlight.get(key);
   if (pending) return pending;
@@ -32,6 +42,7 @@ export async function cached(key, ttlMs, produce) {
   const request = (async () => {
     const value = await produce();
     if (entries.size >= MAX_ENTRIES) deleteExpiredEntries();
+    evictOldest();
     entries.set(key, { value, expiresAt: Date.now() + ttlMs });
     return value;
   })().finally(() => {

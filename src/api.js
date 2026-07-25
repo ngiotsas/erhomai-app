@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { cached } from './cache.js';
-import { distanceInMeters, isValidLatitude, isValidLongitude } from './geo.js';
+import { distanceInMeters, isValidLatitude, isValidLongitude, isWithinServiceArea } from './geo.js';
 import { fetchClosestStops, fetchRoutesForStop, fetchStopArrivals } from './oasaClient.js';
 
 const STOPS_TTL_MS = 5 * 60 * 1000;
@@ -33,6 +33,14 @@ export function createApiRouter() {
       return;
     }
 
+    if (!isWithinServiceArea(lat, lng)) {
+      res.status(400).json({
+        error: 'outside_service_area',
+        message: 'Οι στάσεις του ΟΑΣΑ καλύπτουν μόνο την Αττική.',
+      });
+      return;
+    }
+
     const limit = parseStopLimit(req.query.limit);
     // Στρογγυλοποιούμε στο cache key ώστε δύο χρήστες 10 μέτρα μακριά
     // να μοιράζονται το ίδιο αποτέλεσμα.
@@ -54,7 +62,7 @@ export function createApiRouter() {
   router.get('/arrivals', async (req, res) => {
     const stopCode = String(req.query.stop ?? '').trim();
 
-    if (!/^\d+$/.test(stopCode)) {
+    if (!/^\d{1,10}$/.test(stopCode)) {
       res.status(400).json({
         error: 'invalid_stop_code',
         message: 'Ο κωδικός στάσης πρέπει να είναι αριθμός.',

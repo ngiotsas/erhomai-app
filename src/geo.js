@@ -27,3 +27,12 @@ export function isValidLatitude(value) {
 export function isValidLongitude(value) {
   return Number.isFinite(value) && value >= -180 && value <= 180;
 }
+
+const ATTICA = { minLat: 37.6, maxLat: 38.4, minLng: 23.3, maxLng: 24.2 };
+
+export function isWithinServiceArea(lat, lng) {
+  return (
+    lat >= ATTICA.minLat && lat <= ATTICA.maxLat &&
+    lng >= ATTICA.minLng && lng <= ATTICA.maxLng
+  );
+}

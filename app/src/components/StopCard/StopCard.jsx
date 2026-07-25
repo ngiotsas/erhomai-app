@@ -13,7 +13,7 @@ export default function StopCard({
   secondsAgo,
   arrivalsState,
 }) {
-  const { t, display } = useTranslation();
+  const { t, display, alternate } = useTranslation();
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +21,8 @@ export default function StopCard({
       panelRef.current.focus({ preventScroll: true });
     }
   }, [isSelected]);
+
+  const altName = alternate(stop.name, stop.nameEn);
 
   return (
     <article className={`${styles.card} ${isSelected ? styles.selected : ''}`}>
@@ -31,13 +33,14 @@ export default function StopCard({
         aria-label={t.stopLabel(display(stop.name, stop.nameEn), stop.distanceMeters)}
       >
         <div className={styles.badge}>
-          <span className={styles.distance}>{stop.distanceMeters} μ</span>
+          <span className={styles.distance}>{stop.distanceMeters} {t.metersShort}</span>
         </div>
         <div className={styles.info}>
           <h2 className={styles.stopName}>{display(stop.name, stop.nameEn)}</h2>
           <p className={styles.stopDetails}>
             {display(stop.street, stop.streetEn) && `${display(stop.street, stop.streetEn)} · `}
-            {stop.nameEn ? stop.nameEn : stop.name}
+            {altName && `${altName} · `}
+            {stop.distanceMeters} {t.metersShort}
           </p>
         </div>
       </button>

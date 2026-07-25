@@ -5,7 +5,7 @@ export default function StatusMessage({ type, message }) {
   const isError = type === 'error';
   return (
     <div
-      className={`${styles.wrapper} ${type === 'error' ? styles.error : ''}`}
+      className={`${styles.wrapper} ${isError ? styles.error : ''}`}
       role={isError ? 'alert' : 'status'}
     >
       <p>{message}</p>

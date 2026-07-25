@@ -27,7 +27,6 @@ function createStopIcon(isSelected) {
     iconSize: [34, 40],
     iconAnchor: [17, 40],
     popupAnchor: [0, -36],
-    ariaLabel: null,
   });
 }
 
@@ -65,7 +64,7 @@ export default function MapView({
   secondsAgo,
   arrivalsState,
 }) {
-  const { lang, t, display } = useTranslation();
+  const { lang, t, display, alternate } = useTranslation();
   const selectedStopData = useMemo(
     () => stops.find((s) => s.code === selectedStop),
     [stops, selectedStop],
@@ -73,9 +72,9 @@ export default function MapView({
 
   const handleStopSelect = useCallback(
     (code) => {
-      onStopSelect(code === selectedStop ? null : code);
+      onStopSelect(code);
     },
-    [onStopSelect, selectedStop],
+    [onStopSelect],
   );
 
   const userMarkerIcon = useMemo(() => userIcon(), []);
@@ -129,7 +128,7 @@ export default function MapView({
                     {display(stop.street, stop.streetEn) && (
                       <p className={styles.popupStreet}>{display(stop.street, stop.streetEn)}</p>
                     )}
-                    <p className={styles.popupDistance}>{stop.distanceMeters} μ</p>
+                    <p className={styles.popupDistance}>{stop.distanceMeters} {t.metersShort}</p>
                   </div>
                 </Popup>
               </Marker>
@@ -155,8 +154,8 @@ export default function MapView({
               <p className={styles.panelStopDetails}>
                 {selectedStopData.code}
                 {display(selectedStopData.street, selectedStopData.streetEn) ? ` · ${display(selectedStopData.street, selectedStopData.streetEn)}` : ''}
-                {lang === 'en' && selectedStopData.name ? ` · ${selectedStopData.name}` : lang === 'el' && selectedStopData.nameEn ? ` · ${selectedStopData.nameEn}` : ''}
-                {' · '}{selectedStopData.distanceMeters} μ
+                {alternate(selectedStopData.name, selectedStopData.nameEn) ? ` · ${alternate(selectedStopData.name, selectedStopData.nameEn)}` : ''}
+                {' · '}{selectedStopData.distanceMeters} {t.metersShort}
               </p>
             </div>
             <button

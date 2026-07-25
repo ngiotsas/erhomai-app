@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useGeolocation, GEOLOCATION_STATES } from './hooks/useGeolocation.js';
 import { useStops, FETCH_STATES as STOPS_STATES } from './hooks/useStops.js';
 import { useArrivals } from './hooks/useArrivals.js';
@@ -19,21 +19,10 @@ export default function App() {
   const [selectedStop, setSelectedStop] = useState(null);
   const [view, setView] = useState('list');
   const { arrivals, secondsAgo, state: arrivalsState } = useArrivals(selectedStop);
-  const statusRef = useRef(null);
 
   const handleStopSelect = (code) => {
     setSelectedStop((prev) => (prev === code ? null : code));
   };
-
-  useEffect(() => {
-    if (statusRef.current) {
-      const msg = statusRef.current.textContent;
-      statusRef.current.textContent = '';
-      requestAnimationFrame(() => {
-        if (statusRef.current) statusRef.current.textContent = msg;
-      });
-    }
-  }, [stopsState, arrivalsState]);
 
   if (geoState === GEOLOCATION_STATES.PENDING) {
     return (
@@ -86,8 +75,6 @@ export default function App() {
           {lang === 'el' ? 'EN' : 'EL'}
         </button>
       </div>
-
-      <div className="sr-only" aria-live="polite" aria-atomic="true" ref={statusRef} />
 
       {stopsState === STOPS_STATES.LOADING && (
         <StatusMessage type="status" message={t.searchingStops} />

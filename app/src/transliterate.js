@@ -56,19 +56,28 @@ export function toLatin(text) {
     let matched = false;
     if (i + 1 < stripped.length) {
       const pair = stripped.substring(i, i + 2).toLowerCase();
-      const origCase = stripped[i] === stripped[i].toUpperCase();
       const dg = DIGRAPH_MAP[pair];
       if (dg) {
+        const firstIsLetter = /\p{L}/u.test(stripped[i]);
+        const firstUpper = firstIsLetter && stripped[i] === stripped[i].toUpperCase();
+        const secondUpper = /\p{L}/u.test(stripped[i + 1]) && stripped[i + 1] === stripped[i + 1].toUpperCase();
+
         let val;
         if (pair === 'αυ' || pair === 'ευ') {
           const nextCh = i + 2 < stripped.length ? stripped[i + 2] : '';
           val = VOICELESS.has(nextCh.toLowerCase()) ? dg.voiceless : dg.rest;
-        } else if (i === 0 || /\s/.test(stripped[i - 1])) {
+        } else if (i === 0 || !isGreek(stripped[i - 1])) {
           val = dg.start;
         } else {
           val = dg.rest;
         }
-        result += origCase ? val.toUpperCase() : val;
+
+        if (firstUpper) {
+          val = secondUpper
+            ? val.toUpperCase()
+            : val[0].toUpperCase() + val.slice(1);
+        }
+        result += val;
         i += 2;
         matched = true;
       }
@@ -76,7 +85,24 @@ export function toLatin(text) {
 
     if (!matched) {
       const mapped = CHAR_MAP[ch];
-      result += mapped || ch;
+      if (!mapped) {
+        result += ch;
+        i++;
+        continue;
+      }
+
+      const isLetter = /\p{L}/u.test(ch);
+      const upper = isLetter && ch === ch.toUpperCase();
+      if (upper && mapped.length > 1) {
+        const nextUpper = i + 1 < stripped.length
+          && /\p{L}/u.test(stripped[i + 1])
+          && stripped[i + 1] === stripped[i + 1].toUpperCase();
+        result += nextUpper
+          ? mapped.toUpperCase()
+          : mapped[0].toUpperCase() + mapped.slice(1).toLowerCase();
+      } else {
+        result += (upper && isLetter) ? mapped.toUpperCase() : mapped;
+      }
       i++;
     }
   }

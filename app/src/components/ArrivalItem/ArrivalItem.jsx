@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { useTranslation } from '../../i18n.jsx';
 import styles from './ArrivalItem.module.css';
 
-export default function ArrivalItem({ arrival }) {
+export default memo(function ArrivalItem({ arrival }) {
   const { lang, t, display } = useTranslation();
   const urgent = arrival.minutes <= 3;
 
@@ -28,4 +29,4 @@ export default function ArrivalItem({ arrival }) {
       </span>
     </li>
   );
-}
+});
