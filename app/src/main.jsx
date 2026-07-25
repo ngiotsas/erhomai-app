@@ -8,10 +8,10 @@ import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <LangProvider>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <LangProvider>
         <App />
-      </ErrorBoundary>
-    </LangProvider>
+      </LangProvider>
+    </ErrorBoundary>
   </StrictMode>
 );

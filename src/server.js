@@ -19,6 +19,8 @@ app.disable('x-powered-by');
 const TRUST_PROXY = Number.parseInt(process.env.TRUST_PROXY ?? '0', 10);
 if (Number.isFinite(TRUST_PROXY) && TRUST_PROXY > 0) {
   app.set('trust proxy', TRUST_PROXY);
+} else if (process.env.NODE_ENV === 'production') {
+  console.warn('[server] TRUST_PROXY unset. Behind a proxy, all clients share one rate-limit bucket.');
 }
 
 app.use('/api', rateLimit({

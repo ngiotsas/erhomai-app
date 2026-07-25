@@ -38,8 +38,7 @@ export default function StopCard({
         <div className={styles.info}>
           <h2 className={styles.stopName}>{display(stop.name, stop.nameEn)}</h2>
           <p className={styles.stopDetails}>
-            {display(stop.street, stop.streetEn) && `${display(stop.street, stop.streetEn)} · `}
-            {altName && altName}
+            {[display(stop.street, stop.streetEn), altName].filter(Boolean).join(' · ') || null}
           </p>
         </div>
       </button>

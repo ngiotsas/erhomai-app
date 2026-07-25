@@ -26,6 +26,7 @@ export default class ErrorBoundary extends Component {
             border: '1px solid #fca5a5', color: '#b91c1c', background: '#fef2f2',
           }}>
             <p>Κάτι πήγε στραβά.</p>
+            <p>Something went wrong.</p>
           </div>
         </main>
       );
