@@ -10,16 +10,16 @@ You open the site, it asks for your location, it finds the stops around you, and
 
 The OASA telematics API could in theory be called straight from the browser. It cannot, for three reasons:
 
-1. **No HTTPS.** `telematics.oasa.gr` serves plain HTTP. A browser on an HTTPS page blocks those requests as mixed content, and the site needs HTTPS anyway because the Geolocation API refuses to run without it. (Note: the API is reachable over HTTPS on port 443, which this code uses.)
+1. **No HTTPS.** `telematics.oasa.gr` is served over plain HTTP by default (port 80 is firewalled). A browser on an HTTPS page blocks those requests as mixed content, and the site needs HTTPS anyway because the Geolocation API refuses to run without it. The API does respond on HTTPS (port 443), which this code uses.
 2. **No CORS headers.** Even over HTTP, the browser would reject the response.
-3. **A fragile upstream.** The OASA API goes down often, rate-limits aggressively, and filters requests from IP addresses outside Greece.
+3. **A fragile upstream.** The OASA API goes down often and rate-limits aggressively. HTTP (port 80) is firewalled, so HTTPS (port 443) must be used.
 
 So this server sits in the middle. It proxies the calls, caches the answers so one busy stop does not generate hundreds of upstream requests, and hands the frontend clean JSON with real line names instead of internal route codes.
 
 ## Requirements
 
 - Node.js 20 or newer (developed and tested on 22)
-- A network path to `telematics.oasa.gr`, which in practice means a Greek IP address or a VPN endpoint in Greece
+- Network connectivity to `telematics.oasa.gr` over HTTPS (port 443)
 
 ## Install
 
@@ -76,7 +76,7 @@ curl "http://localhost:3000/api/stops?lat=37.9838&lng=23.7275"
 curl "http://localhost:3000/api/arrivals?stop=400075"
 ```
 
-The first coordinates point at Syntagma Square, and stop 400075 is ΗΣΑΠ Ν. ΦΑΛΗΡΟΥ. If the second and third commands return `502 upstream_unavailable`, the OASA API is either down or blocking your IP address.
+The first coordinates point at Syntagma Square, and stop 400075 is ΗΣΑΠ Ν. ΦΑΛΗΡΟΥ. If the second and third commands return `502 upstream_unavailable`, the OASA API is either down or temporarily unreachable.
 
 ## API
 
