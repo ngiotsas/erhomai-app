@@ -4,13 +4,13 @@ Bus arrival times for the nearest OASA stop in Athens.
 
 You open the site, it asks for your location, it finds the stops around you, and it tells you how many minutes until the next bus. That is the whole product.
 
-**Status:** the backend works. The React frontend with the map is not built yet.
+**Status:** backend + React frontend (list view + Leaflet map) are built and working. Greek/English i18n with transliteration.
 
 ## Why a backend exists at all
 
 The OASA telematics API could in theory be called straight from the browser. It cannot, for three reasons:
 
-1. **No HTTPS.** `telematics.oasa.gr` serves plain HTTP. A browser on an HTTPS page blocks those requests as mixed content, and the site needs HTTPS anyway because the Geolocation API refuses to run without it.
+1. **No HTTPS.** `telematics.oasa.gr` serves plain HTTP. A browser on an HTTPS page blocks those requests as mixed content, and the site needs HTTPS anyway because the Geolocation API refuses to run without it. (Note: the API is reachable over HTTPS on port 443, which this code uses.)
 2. **No CORS headers.** Even over HTTP, the browser would reject the response.
 3. **A fragile upstream.** The OASA API goes down often, rate-limits aggressively, and filters requests from IP addresses outside Greece.
 
@@ -24,28 +24,45 @@ So this server sits in the middle. It proxies the calls, caches the answers so o
 ## Install
 
 ```bash
-git clone <your-repo-url> erhomai
+git clone https://github.com/ngiotsas/erhomai-app.git erhomai
 cd erhomai
-npm install
+npm install           # Backend (Express)
+cd app && npm install # Frontend (React + Vite + Leaflet)
+cd ..
 ```
-
-That pulls a single dependency, Express. Everything else comes from the Node standard library.
 
 ## Run
 
-Development, with automatic restart on file changes:
+### Development
+
+Backend alone (auto-restart on file changes):
 
 ```bash
 npm run dev
 ```
 
-Production:
+Frontend alone (Vite with HMR on port 5173, proxies /api to :3000):
 
 ```bash
+npm --prefix app run dev
+```
+
+Both together:
+
+```bash
+npm run dev:ui
+```
+
+### Production
+
+Build the frontend, then start the server:
+
+```bash
+npm run build:ui
 npm start
 ```
 
-The server listens on port 3000. Override it with the `PORT` environment variable:
+The server listens on port 3000 and serves the built frontend from `app/dist/`. Override the port:
 
 ```bash
 PORT=8080 npm start
@@ -82,6 +99,7 @@ Finds the stops nearest to a point.
       "name": "ΒΕΝΙΖΕΛΟΥ",
       "nameEn": "VENIZELOY",
       "street": "ΓΡ.ΛΑΜΠΡΑΚΗ",
+      "streetEn": null,
       "lat": 37.9432677,
       "lng": 23.6520113,
       "distanceMeters": 143
@@ -108,7 +126,9 @@ Lists the buses approaching a stop.
     {
       "lineId": "550",
       "lineName": "ΠΕΙΡΑΙΑΣ - Ν. ΣΜΥΡΝΗ (ΚΥΚΛΙΚΗ)",
+      "lineNameEn": "PEIRAIAS - N. SMYRNI (CIRCULAR)",
       "direction": "ΠΕΙΡΑΙΑΣ - Ν. ΣΜΥΡΝΗ",
+      "directionEn": "PEIRAIAS - N. SMYRNI",
       "minutes": 5,
       "vehicleCode": "50328"
     }
@@ -116,7 +136,7 @@ Lists the buses approaching a stop.
 }
 ```
 
-Behind one call, the server makes two upstream requests in parallel. `getStopArrivals` returns route codes and minutes, `webRoutesForStop` returns the mapping from route codes to line names, and this endpoint joins them.
+Behind one call, the server makes two upstream requests in parallel. `getStopArrivals` returns route codes and minutes, `webRoutesForStop` returns the mapping from route codes to line names (with English translations when available), and this endpoint joins them.
 
 ### Errors
 
@@ -131,12 +151,52 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 ## Layout
 
 ```
-server.js            Express setup, health check, error handling
-src/api.js           The two public endpoints and the caching policy
-src/oasaClient.js    Calls to telematics.oasa.gr, plus response normalization
-src/cache.js         TTL cache with singleflight
-src/geo.js           Haversine distance and coordinate validation
+├── src/                         # Backend (Express API)
+│   ├── server.js                # Express setup, static file serving, error handling
+│   ├── api.js                   # /api/stops and /api/arrivals endpoints
+│   ├── oasaClient.js            # Calls to telematics.oasa.gr, response normalization
+│   ├── cache.js                 # TTL cache with singleflight
+│   └── geo.js                   # Haversine distance and coordinate validation
+│
+├── app/                         # Frontend (React + Vite + Leaflet)
+│   ├── index.html               # HTML shell with SEO meta tags, OG, JSON-LD
+│   ├── vite.config.js           # Vite config, /api proxy to :3000
+│   ├── public/robots.txt
+│   └── src/
+│       ├── main.jsx             # React entry point
+│       ├── index.css            # CSS variables, reset, focus-visible, sr-only
+│       ├── i18n.jsx             # Translations (el/en) + LangProvider context
+│       ├── transliterate.js     # Greek→Latin transliteration
+│       ├── App.jsx              # Orchestration: geolocation → stops → arrivals
+│       ├── App.module.css
+│       ├── hooks/
+│       │   ├── useGeolocation.js   # Browser Geolocation API
+│       │   ├── useStops.js         # /api/stops with client-side cache
+│       │   └── useArrivals.js      # /api/arrivals with 25s auto-poll
+│       └── components/
+│           ├── LocationGate/       # Location permission prompt + error states
+│           ├── StopCard/           # Stop row with expandable arrivals
+│           ├── ArrivalItem/        # Line badge + name + minutes
+│           ├── MapView/            # Leaflet map with bus-stop pins + arrivals panel
+│           └── StatusMessage/      # Loading/error/empty states
+│
+├── package.json                 # Root: backend deps + dev/ui/build scripts
+├── todo.md                      # Pending: English map tile options
+└── README.md
 ```
+
+## Frontend
+
+### Features
+
+- **List view** — nearest 5 stops with distance, expandable arrival times
+- **Map view** — Leaflet map with bus-stop pin markers, tap for arrivals panel, re-centre button
+- **View toggle** — Λίστα / Χάρτης segmented button
+- **Greek / English** — i18n with automatic browser language detection, localStorage persistence. Stop names, line names, and directions use OASA's English translations when available, otherwise transliterate Greek to Latin.
+- **Auto-refresh** — Arrivals poll every 25 seconds with a "X seconds ago" freshness indicator
+- **Accessibility** — Semantic HTML (`<main>`, `<article>`, `<section>`), ARIA labels, keyboard navigation, `aria-live` regions, `focus-visible` outlines, 44px touch targets
+- **Mobile-first responsive** — Dynamic viewport units (`dvh`), safe area padding, responsive map height
+- **Technical SEO** — Open Graph, Twitter Cards, JSON-LD structured data, canonical URL, robots.txt
 
 ## Caching
 
@@ -171,6 +231,8 @@ HTTPS is mandatory, not a nicety. Without a valid certificate the browser will n
 **Silent empty results.** When OASA returns an error object instead of an array, the client turns it into an empty list. Users see "no arrivals" rather than an error. The upstream API has no consistent error format to detect, so distinguishing the two cases reliably is not possible today.
 
 **No rate limiting toward OASA.** Caching and singleflight cut the request volume a lot, but under real traffic you should add a concurrency limit in `src/oasaClient.js` before OASA starts refusing your IP address.
+
+**English map tiles.** The English mode uses ESRI World Street Map as a fallback; it doesn't render OSM `name:en` tags. OpenFreeMap vector tiles (see `todo.md`) are the planned open-source fix.
 
 ## Credit
 
