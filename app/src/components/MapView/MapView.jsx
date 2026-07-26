@@ -1,11 +1,12 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Map, NavigationControl, Marker, Popup } from 'maplibre-gl';
 import { useTranslation } from '../../i18n.jsx';
-import { createStyle } from '../../mapStyle.js';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
 import { FETCH_STATES } from '../../hooks/useArrivals.js';
 import styles from './MapView.module.css';
+
+const TILE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 function createStopElement(isSelected) {
   const el = document.createElement('div');
@@ -52,10 +53,11 @@ export default function MapView({
 
     const map = new Map({
       container: containerRef.current,
-      style: createStyle(lang),
+      style: TILE_STYLE,
       center: [coords.lng, coords.lat],
       zoom: 15,
       attributionControl: true,
+      cooperativeGestures: true,
     });
 
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
@@ -67,11 +69,6 @@ export default function MapView({
       mapRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setStyle(createStyle(lang), { diff: false });
-  }, [lang]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -137,8 +134,6 @@ export default function MapView({
     map.flyTo({ center: [coords.lng, coords.lat], zoom: 15 });
   }, [coords]);
 
-  const tileStyle = useMemo(() => createStyle(lang), [lang]);
-
   if (!coords) return null;
 
   return (
@@ -147,6 +142,7 @@ export default function MapView({
         <div
           ref={containerRef}
           className={styles.map}
+          data-testid="map-container"
         />
 
         <button
