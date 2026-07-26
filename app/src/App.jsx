@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGeolocation, GEOLOCATION_STATES } from './hooks/useGeolocation.js';
 import { useStops, FETCH_STATES as STOPS_STATES } from './hooks/useStops.js';
 import { useArrivals } from './hooks/useArrivals.js';
@@ -7,7 +7,12 @@ import LocationGate from './components/LocationGate/LocationGate.jsx';
 import StopCard from './components/StopCard/StopCard.jsx';
 import MapView from './components/MapView/MapView.jsx';
 import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
+import PrivacyPolicy from './components/PrivacyPolicy/PrivacyPolicy.jsx';
 import styles from './App.module.css';
+
+function getRoute() {
+  return window.location.hash === '#privacy' ? 'privacy' : 'home';
+}
 
 export default function App() {
   const { lang, setLang, t } = useTranslation();
@@ -19,10 +24,25 @@ export default function App() {
   const [selectedStop, setSelectedStop] = useState(null);
   const [view, setView] = useState('list');
   const { arrivals, secondsAgo, state: arrivalsState } = useArrivals(selectedStop);
+  const [route, setRoute] = useState(getRoute);
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(getRoute());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleStopSelect = (code) => {
     setSelectedStop((prev) => (prev === code ? null : code));
   };
+
+  const navigateHome = useCallback(() => {
+    window.location.hash = '';
+  }, []);
+
+  if (route === 'privacy') {
+    return <PrivacyPolicy onBack={navigateHome} />;
+  }
 
   if (geoState === GEOLOCATION_STATES.PENDING) {
     return (
@@ -38,6 +58,9 @@ export default function App() {
           </button>
         </div>
         <LocationGate state={geoState} />
+        <footer className={styles.footer}>
+          <a href="#privacy" className={styles.footerLink}>{t.privacyLink}</a>
+        </footer>
       </main>
     );
   }
@@ -59,6 +82,9 @@ export default function App() {
           </button>
         </div>
         <LocationGate state={geoState} onRetry={retry} />
+        <footer className={styles.footer}>
+          <a href="#privacy" className={styles.footerLink}>{t.privacyLink}</a>
+        </footer>
       </main>
     );
   }
@@ -142,6 +168,16 @@ export default function App() {
           )}
         </>
       )}
+
+      <section className={styles.dataCollection}>
+        <h2 className={styles.dataCollectionTitle}>{t.dataCollectionTitle}</h2>
+        <p className={styles.dataCollectionText}>{t.dataCollectionText}</p>
+        <a href="#privacy" className={styles.dataCollectionLink}>{t.dataCollectionMore}</a>
+      </section>
+
+      <footer className={styles.footer}>
+        <a href="#privacy" className={styles.footerLink}>{t.privacyLink}</a>
+      </footer>
     </main>
   );
 }

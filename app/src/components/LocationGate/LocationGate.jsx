@@ -8,9 +8,21 @@ export default function LocationGate({ state, onRetry }) {
   return (
     <div className={styles.wrapper}>
       {state === GEOLOCATION_STATES.PENDING && (
-        <p className={styles.text} role="status">
-          {t.locating}
-        </p>
+        <>
+          <p className={styles.text} role="status">
+            {t.locating}
+          </p>
+          <p className={styles.gdprNotice}>
+            {t.gdprNotice}
+            {' '}
+            <a
+              href="#privacy"
+              className={styles.gdprLink}
+            >
+              {t.gdprReadMore}
+            </a>
+          </p>
+        </>
       )}
       {state === GEOLOCATION_STATES.DENIED && (
         <div className={styles.block} role="alert">
@@ -19,6 +31,16 @@ export default function LocationGate({ state, onRetry }) {
           <button className={styles.button} onClick={onRetry}>
             {t.tryAgain}
           </button>
+          <p className={styles.gdprNotice}>
+            {t.gdprNotice}
+            {' '}
+            <a
+              href="#privacy"
+              className={styles.gdprLink}
+            >
+              {t.gdprReadMore}
+            </a>
+          </p>
         </div>
       )}
       {state === GEOLOCATION_STATES.UNAVAILABLE && (
@@ -27,6 +49,16 @@ export default function LocationGate({ state, onRetry }) {
           <button className={styles.button} onClick={onRetry}>
             {t.tryAgain}
           </button>
+          <p className={styles.gdprNotice}>
+            {t.gdprNotice}
+            {' '}
+            <a
+              href="#privacy"
+              className={styles.gdprLink}
+            >
+              {t.gdprReadMore}
+            </a>
+          </p>
         </div>
       )}
     </div>
