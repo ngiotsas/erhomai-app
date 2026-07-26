@@ -79,3 +79,9 @@
   background: var(--color-accent);
   border-color: var(--color-accent);
 }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

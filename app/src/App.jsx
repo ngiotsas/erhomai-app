@@ -114,7 +114,7 @@ export default function App() {
           </div>
 
           {view === 'list' && (
-            <section aria-label={t.nearbyStops}>
+            <section className={styles.list} aria-label={t.nearbyStops}>
               {stops.map((stop) => (
                 <StopCard
                   key={stop.code}
