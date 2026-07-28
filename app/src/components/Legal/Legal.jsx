@@ -46,6 +46,7 @@ export default function LegalNotice({ onBack }) {
         <ul className={styles.list}>
           <li>{t.privacyThird1}</li>
           <li>{t.privacyThird2}</li>
+          <li>{t.privacyThird3}</li>
         </ul>
       </section>
 
