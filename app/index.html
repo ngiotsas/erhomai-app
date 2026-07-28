@@ -34,12 +34,11 @@
     <title>Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ</title>
   </head>
   <body>
+    <div id="loading-msg" style="padding:16px;font-family:Arial,sans-serif;font-size:14px;color:#666;">Loading... | Φόρτωση...</div>
     <div id="root"></div>
     <noscript>Please enable JavaScript to use this app. | <span lang="el">Παρακαλώ ενεργοποιήστε τη JavaScript.</span></noscript>
     <script>
-      window.onerror = function(m, s, l, c, e) {
-        document.getElementById('root').innerHTML = '<div style="padding:16px;color:red;font-family:monospace;font-size:13px;"><strong>JS Error:</strong><pre>' + (m||'') + '\n' + (s||'') + ':' + (l||'') + ':' + (c||'') + '</pre><pre>' + ((e&&e.stack)||'') + '</pre></div>';
-      };
+      document.getElementById('loading-msg').remove();
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
