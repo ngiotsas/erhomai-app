@@ -34,7 +34,7 @@ export default function StopCard({
         aria-label={t.stopLabel(display(stop.name, stop.nameEn), stop.distanceMeters)}
       >
         <div className={styles.badge}>
-          <span className={styles.distance}>{stop.distanceMeters} {t.metersShort}</span>
+          <span className={styles.distance}>{stop.distanceMeters} {t.metersShort}</span>
         </div>
         <div className={styles.info}>
           <h2 className={styles.stopName}>{display(stop.name, stop.nameEn)}</h2>

@@ -40,6 +40,7 @@ export function useArrivals(stopCode) {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- fetches on mount/stopCode change */
   useEffect(() => {
     if (!stopCode) {
       activeStopRef.current = null;
@@ -53,6 +54,7 @@ export function useArrivals(stopCode) {
     setArrivals(null);
     setFetchedAt(null);
     setState(FETCH_STATES.IDLE);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     fetchArrivals(stopCode);
     lastFetchRef.current = Date.now();

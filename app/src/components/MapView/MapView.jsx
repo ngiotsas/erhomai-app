@@ -10,19 +10,24 @@ import styles from './MapView.module.css';
 
 const TILE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
-function createStopElement(isSelected) {
+function createStopElement() {
   const el = document.createElement('div');
-  const cls = isSelected ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
-  el.className = cls;
-  const color = isSelected ? '#fff' : '#111';
+  el.className = styles.pin;
   el.innerHTML = `<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-<rect x="0" y="2" width="22" height="10" rx="2" stroke="${color}" stroke-width="1.5"/>
-<rect x="3" y="4" width="7" height="4" rx="1" fill="${color}" opacity="0.2"/>
-<rect x="11" y="4" width="8" height="4" rx="1" fill="${color}" opacity="0.2"/>
-<circle cx="4.5" cy="13.5" r="1.5" fill="${color}"/>
-<circle cx="17.5" cy="13.5" r="1.5" fill="${color}"/>
+<rect x="0" y="2" width="22" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+<rect x="3" y="4" width="7" height="4" rx="1" fill="currentColor" opacity="0.2"/>
+<rect x="11" y="4" width="8" height="4" rx="1" fill="currentColor" opacity="0.2"/>
+<circle cx="4.5" cy="13.5" r="1.5" fill="currentColor"/>
+<circle cx="17.5" cy="13.5" r="1.5" fill="currentColor"/>
 </svg>`;
   return el;
+}
+
+function applySelectionStyle(markers, selectedStopCode) {
+  Object.entries(markers).forEach(([code, marker]) => {
+    const el = marker.getElement();
+    el.className = code === selectedStopCode ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
+  });
 }
 
 export default function MapView({
@@ -40,8 +45,7 @@ export default function MapView({
   const markersRef = useRef({});
   const userMarkerRef = useRef(null);
   const initialCoordsRef = useRef(null);
-
-  if (!initialCoordsRef.current && coords) initialCoordsRef.current = coords;
+  const langRef = useRef(lang);
 
   const selectedStopData = useMemo(
     () => stops.find((s) => s.code === selectedStop),
@@ -49,9 +53,9 @@ export default function MapView({
   );
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current || mapRef.current || !coords) return;
+    initialCoordsRef.current = coords;
     const center = initialCoordsRef.current;
-    if (!center) return;
 
     const map = new Map({
       container: containerRef.current,
@@ -70,15 +74,17 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- map mounts once, coords in ref
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    if (langRef.current === lang && langRef.current === 'el') return;
+    langRef.current = lang;
     let cancelled = false;
     createStyle(lang).then((style) => {
       if (!cancelled) map.setStyle(style);
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [lang]);
 
@@ -90,7 +96,7 @@ export default function MapView({
     markersRef.current = {};
 
     stops.forEach((stop) => {
-      const el = createStopElement(false);
+      const el = createStopElement();
       el.title = display(stop.name, stop.nameEn);
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
@@ -132,20 +138,16 @@ export default function MapView({
       markersRef.current[stop.code] = marker;
     });
 
+    applySelectionStyle(markersRef.current, selectedStop);
+
     return () => {
       Object.values(markersRef.current).forEach((m) => m.remove());
       markersRef.current = {};
     };
-  }, [stops, display, t, onStopSelect]);
+  }, [stops, selectedStop, display, t, onStopSelect]);
 
   useEffect(() => {
-    const stopCode = selectedStop;
-    if (!stopCode) return;
-    Object.entries(markersRef.current).forEach(([code, marker]) => {
-      const el = marker.getElement();
-      const isSelected = code === stopCode;
-      el.className = isSelected ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
-    });
+    applySelectionStyle(markersRef.current, selectedStop);
   }, [selectedStop]);
 
   useEffect(() => {

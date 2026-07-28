@@ -40,12 +40,14 @@ export function useStops(lat, lng) {
     }
   }, [lat, lng]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- fetches when coords change */
   useEffect(() => {
     fetchStops();
     return () => {
       abortRef.current?.abort();
     };
   }, [fetchStops]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { stops, state };
 }

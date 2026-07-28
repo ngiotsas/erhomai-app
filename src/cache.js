@@ -27,8 +27,8 @@ function evictLRU() {
 
 /**
  * Επιστρέφει την τιμή από το cache ή την παράγει με τη produce().
- * Τα σφάλματα δεν μπαίνουν ποτέ στο cache, ώστε η επόμενη προσπάθεια
- * να ξαναχτυπήσει το OASA.
+ * Τα σφάλματα αποθηκεύονται με μικρό TTL (negative cache) ώστε να
+ * αποφεύγεται το retry-storm κατά τη διάρκεια outage.
  */
 export async function cached(key, ttlMs, produce) {
   const hit = entries.get(key);
@@ -52,6 +52,8 @@ export async function cached(key, ttlMs, produce) {
       entries.set(key, { value, expiresAt: Date.now() + ttlMs });
       return value;
     } catch (err) {
+      if (entries.size >= MAX_ENTRIES) deleteExpiredEntries();
+      evictLRU();
       entries.set(key, { value: { error: true, errorObj: err }, expiresAt: Date.now() + NEGATIVE_TTL_MS });
       throw err;
     }

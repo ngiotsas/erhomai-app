@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
 
 export default [
   js.configs.recommended,
@@ -17,18 +18,10 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      globals: {
-        document: 'readonly',
-        navigator: 'readonly',
-        window: 'readonly',
-        fetch: 'readonly',
-        localStorage: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
       },
+      globals: globals.browser,
     },
   },
 ];

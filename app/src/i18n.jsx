@@ -24,13 +24,13 @@ export function LangProvider({ children }) {
     try {
       const stored = localStorage.getItem(LANG_KEY);
       if (stored === 'el' || stored === 'en') return stored;
-    } catch {}
+    } catch { /* localStorage may be unavailable */ }
     return navigator.language?.split('-')[0] === 'el' ? 'el' : 'en';
   });
 
   const setLang = useCallback((l) => {
     setLangState(l);
-    try { localStorage.setItem(LANG_KEY, l); } catch {}
+    try { localStorage.setItem(LANG_KEY, l); } catch { /* localStorage may be unavailable */ }
   }, []);
 
   useEffect(() => {

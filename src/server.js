@@ -17,7 +17,7 @@ const app = express();
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.userway.org; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.userway.org; frame-src 'self' https://*.userway.org; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org https://api.userway.org; worker-src blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:");
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');

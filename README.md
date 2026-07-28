@@ -199,7 +199,7 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 │           └── SecondsAgo/         # "X seconds ago" freshness indicator
 │
 ├── package.json                 # Root: backend deps + dev/ui/build scripts
-├── todo.md                      # Pending: English map tile options
+├── todo.md                      # Resolved: English map tiles
 └── README.md
 ```
 
