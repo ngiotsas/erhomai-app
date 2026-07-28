@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Map, NavigationControl, Marker, Popup } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../../LangContext.js';
 import { createStyle } from '../../mapStyle.js';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';

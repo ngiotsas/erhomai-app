@@ -1,15 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { useGeolocation, GEOLOCATION_STATES } from './hooks/useGeolocation.js';
 import { useStops, FETCH_STATES as STOPS_STATES } from './hooks/useStops.js';
 import { useArrivals } from './hooks/useArrivals.js';
 import { useTranslation } from './LangContext.js';
 import LocationGate from './components/LocationGate/LocationGate.jsx';
 import StopCard from './components/StopCard/StopCard.jsx';
-import MapView from './components/MapView/MapView.jsx';
 import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
 import LegalNotice from './components/Legal/Legal.jsx';
 import AppShell from './components/AppShell/AppShell.jsx';
 import styles from './App.module.css';
+
+const MapView = lazy(() => import('./components/MapView/MapView.jsx'));
 
 export default function App() {
   const { t } = useTranslation();
@@ -114,15 +115,17 @@ export default function App() {
           )}
 
           {view === 'map' && (
-            <MapView
-              coords={coords}
-              stops={stops}
-              selectedStop={selectedStop}
-              onStopSelect={handleStopSelect}
-              arrivals={arrivals}
-              fetchedAt={fetchedAt}
-              arrivalsState={arrivalsState}
-            />
+            <Suspense fallback={<StatusMessage type="status" message={t.searchingStops} />}>
+              <MapView
+                coords={coords}
+                stops={stops}
+                selectedStop={selectedStop}
+                onStopSelect={handleStopSelect}
+                arrivals={arrivals}
+                fetchedAt={fetchedAt}
+                arrivalsState={arrivalsState}
+              />
+            </Suspense>
           )}
         </>
       )}
