@@ -9,7 +9,6 @@ import MapView from './components/MapView/MapView.jsx';
 import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
 import LegalNotice from './components/Legal/Legal.jsx';
 import AppShell from './components/AppShell/AppShell.jsx';
-import ConsentBanner from './components/ConsentBanner/ConsentBanner.jsx';
 import styles from './App.module.css';
 
 export default function App() {
@@ -31,20 +30,23 @@ export default function App() {
   const showPrivacyPage = useCallback(() => setShowPrivacy(true), []);
   const hidePrivacyPage = useCallback(() => setShowPrivacy(false), []);
 
-  let content;
   if (showPrivacy) {
-    content = <LegalNotice onBack={hidePrivacyPage} />;
-  } else if (geoState === GEOLOCATION_STATES.PENDING) {
-    content = (
+    return <LegalNotice onBack={hidePrivacyPage} />;
+  }
+
+  if (geoState === GEOLOCATION_STATES.PENDING) {
+    return (
       <AppShell onShowPrivacy={showPrivacyPage}>
         <LocationGate state={geoState} onShowPrivacy={showPrivacyPage} />
       </AppShell>
     );
-  } else if (
+  }
+
+  if (
     geoState === GEOLOCATION_STATES.DENIED ||
     geoState === GEOLOCATION_STATES.UNAVAILABLE
   ) {
-    content = (
+    return (
       <AppShell onShowPrivacy={showPrivacyPage}>
         <LocationGate
           state={geoState}
@@ -54,8 +56,9 @@ export default function App() {
         />
       </AppShell>
     );
-  } else {
-    content = (
+  }
+
+  return (
     <AppShell wide={view === 'map'} onShowPrivacy={showPrivacyPage}>
       {stopsState === STOPS_STATES.LOADING && (
         <StatusMessage type="status" message={t.searchingStops} />
@@ -130,13 +133,5 @@ export default function App() {
         <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.dataCollectionLink}>{t.dataCollectionMore}</a>
       </section>
     </AppShell>
-    );
-  }
-
-  return (
-    <>
-      {content}
-      <ConsentBanner onShowPrivacy={showPrivacyPage} />
-    </>
   );
 }
