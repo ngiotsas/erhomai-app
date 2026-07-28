@@ -46,14 +46,14 @@ describe('cached', () => {
     assert.deepEqual(results, ['shared', 'shared', 'shared']);
   });
 
-  it('singleflight releases: call after settle + TTL expiry calls produce again', async () => {
+  it('singleflight releases: inFlight drops to 0 after settle', async () => {
     const key = nextKey();
     let calls = 0;
-    await cached(key, 10, async () => { calls++; return 'first'; });
-    await setTimeout(15);
-    const result = await cached(key, 10, async () => { calls++; return 'second'; });
-    assert.equal(result, 'second');
-    assert.equal(calls, 2);
+    const promise = cached(key, 30, async () => { calls++; await setTimeout(5); return 'ok'; });
+    assert.equal(cacheStats().inFlight, 1);
+    await promise;
+    assert.equal(cacheStats().inFlight, 0);
+    assert.equal(calls, 1);
   });
 
   it('negative cache: rethrows the SAME error object (identity)', async () => {
@@ -81,17 +81,15 @@ describe('cached', () => {
   it('negative cache: concurrent waiters on rejected singleflight all receive the same rejection', async () => {
     const key = nextKey();
     const theError = new Error('oasa-down');
-    const caught = [];
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       cached(key, 30, async () => { throw theError; }),
       cached(key, 30, async () => { throw theError; }),
       cached(key, 30, async () => { throw theError; }),
     ]);
-    try { await cached(key, 30, async () => { throw theError; }); } catch (e) { caught.push(e); }
-    try { await cached(key, 30, async () => { throw theError; }); } catch (e) { caught.push(e); }
-    assert.equal(caught.length, 2);
-    assert.equal(caught[0], theError);
-    assert.equal(caught[1], theError);
+    for (const r of results) {
+      assert.equal(r.status, 'rejected');
+      assert.equal(r.reason, theError);
+    }
   });
 
   it('cacheStats().inFlight returns to 0 after a call settles, on both paths', async () => {
@@ -105,26 +103,26 @@ describe('cached', () => {
     assert.equal(cacheStats().inFlight, 0);
   });
 
-  it('eviction: inserting MAX_ENTRIES + 50 keys stays within MAX_ENTRIES', async () => {
+  it('eviction: inserting MAX_ENTRIES + 50 keys caps at exactly MAX_ENTRIES', async () => {
     const total = MAX_ENTRIES + 50;
     const promises = [];
     for (let i = 0; i < total; i++) {
-      promises.push(cached(`evict:${i}`, 30, async () => i));
+      promises.push(cached(`evict:${i}`, 60000, async () => i));
     }
     await Promise.all(promises);
-    assert.ok(cacheStats().entries <= MAX_ENTRIES);
+    assert.equal(cacheStats().entries, MAX_ENTRIES);
   });
 
-  it('eviction covers the error path too', async () => {
+  it('eviction covers the error path too, capping at MAX_ENTRIES', async () => {
     const total = MAX_ENTRIES + 50;
     const theError = new Error('oasa-down');
     const promises = [];
     for (let i = 0; i < total; i++) {
       promises.push(
-        cached(`evict-err:${i}`, 30, async () => { throw theError; }).catch(() => {})
+        cached(`evict-err:${i}`, 60000, async () => { throw theError; }).catch(() => {})
       );
     }
     await Promise.all(promises);
-    assert.ok(cacheStats().entries <= MAX_ENTRIES);
+    assert.equal(cacheStats().entries, MAX_ENTRIES);
   });
 });

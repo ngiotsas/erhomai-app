@@ -7,7 +7,7 @@ describe('distanceInMeters', () => {
     assert.ok(distanceInMeters(37.9838, 23.7275, 37.9838, 23.7275) < 0.1);
   });
 
-  it('returns ~11 km for Athens centre to Piraeus', () => {
+  it('returns ~8.3 km for Athens centre to Piraeus', () => {
     const d = distanceInMeters(37.9838, 23.7275, 37.9432, 23.6459);
     assert.ok(d > 8000 && d < 9000, `expected ~8300m, got ${d}`);
   });
