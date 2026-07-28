@@ -5,6 +5,7 @@
 
 const MAX_ENTRIES = 2000;
 const NEGATIVE_TTL_MS = 5000;
+export { MAX_ENTRIES, NEGATIVE_TTL_MS };
 
 const entries = new Map(); // key -> { value, expiresAt }
 const inFlight = new Map(); // key -> Promise
@@ -18,10 +19,10 @@ function deleteExpiredEntries() {
 
 // Κατά προσέγγιση LRU: η επαναπροσθήκη στο cache στη γραμμή 37 σπρώχνει τα συχνά κλειδιά προς το τέλος, οπότε η Map επιστρέφει πρώτα αυτά που χρησιμοποιήθηκαν λιγότερο.
 function evictLRU() {
-  if (entries.size <= MAX_ENTRIES) return;
+  if (entries.size < MAX_ENTRIES) return;
   for (const [key] of entries) {
     entries.delete(key);
-    if (entries.size <= MAX_ENTRIES) break;
+    if (entries.size < MAX_ENTRIES) break;
   }
 }
 
