@@ -36,8 +36,8 @@ export default function LegalNotice({ onBack }) {
       </section>
 
       <section>
-        <h2 className={styles.sectionTitle}>{t.privacyNoCookiesTitle}</h2>
-        <p>{t.privacyNoCookiesText}</p>
+        <h2 className={styles.sectionTitle}>{t.privacyCookiesTitle}</h2>
+        <p>{t.privacyCookiesText}</p>
       </section>
 
       <section>
