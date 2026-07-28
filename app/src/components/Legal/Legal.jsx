@@ -60,7 +60,7 @@ export default function LegalNotice({ onBack }) {
       </section>
 
       <footer className={styles.footer}>
-        {t.privacyLastUpdated} 2025-07-26
+        {t.privacyLastUpdated} 2026-07-28
       </footer>
     </main>
   );

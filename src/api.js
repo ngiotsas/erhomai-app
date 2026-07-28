@@ -55,6 +55,7 @@ export function createApiRouter() {
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
       .slice(0, limit);
 
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({ origin: { lat, lng }, stops: nearest });
   });
 
@@ -70,10 +71,18 @@ export function createApiRouter() {
       return;
     }
 
-    const [arrivals, routes] = await Promise.all([
+    const [arrivalsResult, routesResult] = await Promise.allSettled([
       cached(`arrivals:${stopCode}`, ARRIVALS_TTL_MS, () => fetchStopArrivals(stopCode)),
       cached(`routes:${stopCode}`, ROUTES_TTL_MS, () => fetchRoutesForStop(stopCode)),
     ]);
+
+    if (arrivalsResult.status === 'rejected') {
+      res.status(502).json({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ αυτή τη στιγμή.' });
+      return;
+    }
+
+    const arrivals = arrivalsResult.value;
+    const routes = routesResult.status === 'fulfilled' ? routesResult.value : [];
 
     const routesByCode = new Map(routes.map((route) => [route.routeCode, route]));
 
@@ -92,6 +101,7 @@ export function createApiRouter() {
       })
       .sort((a, b) => a.minutes - b.minutes);
 
+    res.setHeader('Cache-Control', 'public, max-age=10');
     res.json({
       stopCode,
       fetchedAt: new Date().toISOString(),

@@ -1,6 +1,6 @@
 # TODO: English map tiles — RESOLVED
 
-**Decision:** Option A (OpenFreeMap vector tiles) — implemented in commit (pending).
+**Decision:** Option A (OpenFreeMap vector tiles) — implemented via `mapStyle.js`.
 
 OpenFreeMap provides free OSM vector tiles with no API key, no registration, and no usage limits. It uses the OpenMapTiles schema which includes language-specific name fields (`name:en`, `name:el`).
 

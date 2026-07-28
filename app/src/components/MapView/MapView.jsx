@@ -1,8 +1,10 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Map, NavigationControl, Marker, Popup } from 'maplibre-gl';
 import { useTranslation } from '../../i18n.jsx';
+import { createStyle } from '../../mapStyle.js';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
+import SecondsAgo from '../SecondsAgo/SecondsAgo.jsx';
 import { FETCH_STATES } from '../../hooks/useArrivals.js';
 import styles from './MapView.module.css';
 
@@ -29,7 +31,7 @@ export default function MapView({
   selectedStop,
   onStopSelect,
   arrivals,
-  secondsAgo,
+  fetchedAt,
   arrivalsState,
 }) {
   const { lang, t, display, alternate } = useTranslation();
@@ -43,12 +45,8 @@ export default function MapView({
     [stops, selectedStop],
   );
 
-  const handleStopSelect = useCallback(
-    (code) => { onStopSelect(code); },
-    [onStopSelect],
-  );
-
   useEffect(() => {
+    if (!coords) return;
     if (!containerRef.current || mapRef.current) return;
 
     const map = new Map({
@@ -68,7 +66,13 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [coords?.lat, coords?.lng]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    createStyle(lang).then((style) => map.setStyle(style));
+  }, [lang]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -83,19 +87,30 @@ export default function MapView({
       el.title = display(stop.name, stop.nameEn);
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
-      el.addEventListener('click', () => handleStopSelect(stop.code));
+      el.addEventListener('click', () => onStopSelect(stop.code));
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          handleStopSelect(stop.code);
+          onStopSelect(stop.code);
         }
       });
 
-      const popupHtml = `<div class="${styles.popup}">
-        <p class="${styles.popupName}">${display(stop.name, stop.nameEn)}</p>
-        ${display(stop.street, stop.streetEn) ? `<p class="${styles.popupStreet}">${display(stop.street, stop.streetEn)}</p>` : ''}
-        <p class="${styles.popupDistance}">${stop.distanceMeters} ${t.metersShort}</p>
-      </div>`;
+      const popupEl = document.createElement('div');
+      popupEl.className = styles.popup;
+      const name = document.createElement('p');
+      name.className = styles.popupName;
+      name.textContent = display(stop.name, stop.nameEn);
+      popupEl.append(name);
+      if (display(stop.street, stop.streetEn)) {
+        const street = document.createElement('p');
+        street.className = styles.popupStreet;
+        street.textContent = display(stop.street, stop.streetEn);
+        popupEl.append(street);
+      }
+      const dist = document.createElement('p');
+      dist.className = styles.popupDistance;
+      dist.textContent = stop.distanceMeters + ' ' + t.metersShort;
+      popupEl.append(dist);
 
       const marker = new Marker({
         element: el,
@@ -104,12 +119,17 @@ export default function MapView({
       })
         .setLngLat([stop.lng, stop.lat])
         .setPopup(new Popup({ offset: 28, closeButton: false })
-          .setHTML(popupHtml))
+          .setDOMContent(popupEl))
         .addTo(map);
 
       markersRef.current[stop.code] = marker;
     });
-  }, [stops, selectedStop, lang, display, t, handleStopSelect]);
+
+    return () => {
+      Object.values(markersRef.current).forEach((m) => m.remove());
+      markersRef.current = {};
+    };
+  }, [stops, selectedStop, display, t, onStopSelect]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -198,16 +218,14 @@ export default function MapView({
             {arrivalsState === FETCH_STATES.READY && arrivals.length > 0 && (
               <>
                 <ul className={styles.arrivalList} aria-label={t.arrivalsLabel}>
-                  {arrivals.map((a, i) => (
-                    <ArrivalItem
-                      key={`${a.lineId}-${a.vehicleCode}-${i}`}
+                    {arrivals.map((a) => (
+                      <ArrivalItem
+                        key={a.vehicleCode}
                       arrival={a}
                     />
                   ))}
                 </ul>
-                <p className={styles.staleIndicator} aria-live="polite">
-                  {t.secondsAgo(secondsAgo)}
-                </p>
+                <SecondsAgo fetchedAt={fetchedAt} className={styles.staleIndicator} />
               </>
             )}
           </div>

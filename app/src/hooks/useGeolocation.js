@@ -10,6 +10,7 @@ export const GEOLOCATION_STATES = {
 export function useGeolocation() {
   const [state, setState] = useState(GEOLOCATION_STATES.PENDING);
   const [coords, setCoords] = useState(null);
+  const [permissionState, setPermissionState] = useState(null);
 
   const requestPosition = useCallback((resetCoords = false) => {
     if (!navigator.geolocation) {
@@ -22,23 +23,48 @@ export function useGeolocation() {
       setCoords(null);
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setState(GEOLOCATION_STATES.READY);
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setState(GEOLOCATION_STATES.DENIED);
-        } else {
-          setState(GEOLOCATION_STATES.UNAVAILABLE);
-        }
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-    );
+    navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
+      setPermissionState(perm.state);
+      if (perm.state === 'denied') {
+        setState(GEOLOCATION_STATES.DENIED);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setState(GEOLOCATION_STATES.READY);
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setState(GEOLOCATION_STATES.DENIED);
+          } else {
+            setState(GEOLOCATION_STATES.UNAVAILABLE);
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      );
+    }).catch(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setState(GEOLOCATION_STATES.READY);
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setState(GEOLOCATION_STATES.DENIED);
+          } else {
+            setState(GEOLOCATION_STATES.UNAVAILABLE);
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      );
+    });
   }, []);
 
   useEffect(() => {
@@ -49,5 +75,5 @@ export function useGeolocation() {
     requestPosition(true);
   }, [requestPosition]);
 
-  return { coords, state, retry };
+  return { coords, state, permissionState, retry };
 }

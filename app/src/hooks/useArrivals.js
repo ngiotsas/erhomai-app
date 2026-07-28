@@ -16,12 +16,17 @@ export function useArrivals(stopCode) {
   const [secondsAgo, setSecondsAgo] = useState(0);
   const activeStopRef = useRef(stopCode);
   const lastFetchRef = useRef(0);
+  const abortRef = useRef(null);
 
   const fetchArrivals = useCallback(async (code, { background = false } = {}) => {
     if (!code) return;
     if (!background) setState(FETCH_STATES.LOADING);
     try {
-      const res = await fetch(`/api/arrivals?stop=${code}`);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const res = await fetch(`/api/arrivals?stop=${code}`, {
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (activeStopRef.current !== code) return;
@@ -30,6 +35,7 @@ export function useArrivals(stopCode) {
       setSecondsAgo(0);
       setState(FETCH_STATES.READY);
     } catch (error) {
+      if (error.name === 'AbortError') return;
       console.error('[arrivals]', error);
       if (activeStopRef.current !== code) return;
       if (!background) setState(FETCH_STATES.ERROR);
@@ -72,6 +78,7 @@ export function useArrivals(stopCode) {
     return () => {
       clearInterval(poll);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      abortRef.current?.abort();
     };
   }, [stopCode, fetchArrivals]);
 
@@ -85,5 +92,5 @@ export function useArrivals(stopCode) {
     return () => clearInterval(id);
   }, [state, fetchedAt]);
 
-  return { arrivals, fetchedAt, secondsAgo, state };
+  return { arrivals, fetchedAt, state };
 }

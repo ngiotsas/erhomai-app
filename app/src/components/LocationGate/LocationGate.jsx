@@ -2,7 +2,23 @@ import { GEOLOCATION_STATES } from '../../hooks/useGeolocation.js';
 import { useTranslation } from '../../i18n.jsx';
 import styles from './LocationGate.module.css';
 
-export default function LocationGate({ state, onRetry }) {
+function GdprNotice({ onShowPrivacy }) {
+  const { t } = useTranslation();
+  return (
+    <p className={styles.gdprNotice}>
+      {t.gdprNotice}
+      {' '}
+      <button
+        className={styles.gdprLink}
+        onClick={(e) => { e.preventDefault(); onShowPrivacy(); }}
+      >
+        {t.gdprReadMore}
+      </button>
+    </p>
+  );
+}
+
+export default function LocationGate({ state, permissionState, onRetry, onShowPrivacy }) {
   const { t } = useTranslation();
 
   return (
@@ -12,35 +28,19 @@ export default function LocationGate({ state, onRetry }) {
           <p className={styles.text} role="status">
             {t.locating}
           </p>
-          <p className={styles.gdprNotice}>
-            {t.gdprNotice}
-            {' '}
-            <a
-              href="#privacy"
-              className={styles.gdprLink}
-            >
-              {t.gdprReadMore}
-            </a>
-          </p>
+          <GdprNotice onShowPrivacy={onShowPrivacy} />
         </>
       )}
       {state === GEOLOCATION_STATES.DENIED && (
         <div className={styles.block} role="alert">
           <p className={styles.text}>{t.locationRequired}</p>
           <p className={styles.hint}>{t.locationHint}</p>
-          <button className={styles.button} onClick={onRetry}>
-            {t.tryAgain}
-          </button>
-          <p className={styles.gdprNotice}>
-            {t.gdprNotice}
-            {' '}
-            <a
-              href="#privacy"
-              className={styles.gdprLink}
-            >
-              {t.gdprReadMore}
-            </a>
-          </p>
+          {permissionState !== 'denied' && (
+            <button className={styles.button} onClick={onRetry}>
+              {t.tryAgain}
+            </button>
+          )}
+          <GdprNotice onShowPrivacy={onShowPrivacy} />
         </div>
       )}
       {state === GEOLOCATION_STATES.UNAVAILABLE && (
@@ -49,16 +49,7 @@ export default function LocationGate({ state, onRetry }) {
           <button className={styles.button} onClick={onRetry}>
             {t.tryAgain}
           </button>
-          <p className={styles.gdprNotice}>
-            {t.gdprNotice}
-            {' '}
-            <a
-              href="#privacy"
-              className={styles.gdprLink}
-            >
-              {t.gdprReadMore}
-            </a>
-          </p>
+          <GdprNotice onShowPrivacy={onShowPrivacy} />
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ Bus arrival times for the nearest OASA stop in Athens.
 
 You open the site, it asks for your location, it finds the stops around you, and it tells you how many minutes until the next bus. That is the whole product.
 
-**Status:** backend + React frontend (list view + Leaflet map) are built and working. Greek/English i18n with transliteration.
+**Status:** backend + React frontend (list view + MapLibre GL JS map) are built and working. Greek/English i18n with transliteration.
 
 ## Why a backend exists at all
 
@@ -27,7 +27,7 @@ So this server sits in the middle. It proxies the calls, caches the answers so o
 git clone https://github.com/ngiotsas/erhomai-app.git erhomai
 cd erhomai
 npm install           # Backend (Express)
-cd app && npm install # Frontend (React + Vite + Leaflet)
+cd app && npm install # Frontend (React + Vite + MapLibre GL JS)
 cd ..
 ```
 
@@ -170,7 +170,7 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 │   ├── cache.js                 # TTL cache with singleflight
 │   └── geo.js                   # Haversine distance and coordinate validation
 │
-├── app/                         # Frontend (React + Vite + Leaflet)
+├── app/                         # Frontend (React + Vite + MapLibre GL JS)
 │   ├── index.html               # HTML shell with SEO meta tags, OG, JSON-LD
 │   ├── vite.config.js           # Vite config, /api proxy to :3000
 │   ├── public/robots.txt
@@ -178,7 +178,10 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 │       ├── main.jsx             # React entry point
 │       ├── index.css            # CSS variables, reset, focus-visible, sr-only
 │       ├── i18n.jsx             # Translations (el/en) + LangProvider context
+│       ├── translations.js      # Translation strings (el/en)
 │       ├── transliterate.js     # Greek→Latin transliteration
+│       ├── mapStyle.js          # OpenFreeMap style with language-aware labels
+│       ├── ErrorBoundary.jsx    # Error boundary with user-friendly fallback
 │       ├── App.jsx              # Orchestration: geolocation → stops → arrivals
 │       ├── App.module.css
 │       ├── hooks/
@@ -189,8 +192,11 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 │           ├── LocationGate/       # Location permission prompt + error states
 │           ├── StopCard/           # Stop row with expandable arrivals
 │           ├── ArrivalItem/        # Line badge + name + minutes
-│           ├── MapView/            # Leaflet map with bus-stop pins + arrivals panel
-│           └── StatusMessage/      # Loading/error/empty states
+│           ├── MapView/            # MapLibre GL JS map with bus-stop pins + arrivals panel
+│           ├── StatusMessage/      # Loading/error/empty states
+│           ├── Legal/              # Attribution / legal notice
+│           ├── AppShell/           # App layout shell
+│           └── SecondsAgo/         # "X seconds ago" freshness indicator
 │
 ├── package.json                 # Root: backend deps + dev/ui/build scripts
 ├── todo.md                      # Pending: English map tile options
@@ -202,7 +208,7 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 ### Features
 
 - **List view** — nearest 5 stops with distance, expandable arrival times
-- **Map view** — Leaflet map with bus-stop pin markers, tap for arrivals panel, re-centre button
+- **Map view** — MapLibre GL JS map with bus-stop pin markers, tap for arrivals panel, re-centre button
 - **View toggle** — Λίστα / Χάρτης segmented button
 - **Greek / English** — i18n with automatic browser language detection, localStorage persistence. Stop names, line names, and directions use OASA's English translations when available, otherwise transliterate Greek to Latin.
 - **Auto-refresh** — Arrivals poll every 25 seconds with a "X seconds ago" freshness indicator
@@ -250,7 +256,7 @@ HTTPS is mandatory, not a nicety. Without a valid certificate the browser will n
 
 **Attica-only.** `/api/stops` rejects coordinates outside the Athens metropolitan area (37.6–38.4°N, 23.3–24.2°E) with a dedicated message. If OASA ever adds service outside Attica, expand the bounding box in `src/geo.js`.
 
-**English map tiles.** The English mode uses ESRI World Street Map as a fallback; it doesn't render OSM `name:en` tags. OpenFreeMap vector tiles (see `todo.md`) are the planned open-source fix.
+**English map tiles.** Map labels are rendered from OpenFreeMap vector tiles. Greek mode uses the `name` field; English mode uses `coalesce(name_en, name)` to show English names when available, with a Greek fallback.
 
 ## Credit
 

@@ -8,23 +8,24 @@ import StopCard from './components/StopCard/StopCard.jsx';
 import MapView from './components/MapView/MapView.jsx';
 import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
 import LegalNotice from './components/Legal/Legal.jsx';
+import AppShell from './components/AppShell/AppShell.jsx';
 import styles from './App.module.css';
 
 export default function App() {
-  const { lang, setLang, t } = useTranslation();
-  const { coords, state: geoState, retry } = useGeolocation();
+  const { t } = useTranslation();
+  const { coords, state: geoState, permissionState, retry } = useGeolocation();
   const { stops, state: stopsState } = useStops(
     coords?.lat,
     coords?.lng,
   );
   const [selectedStop, setSelectedStop] = useState(null);
   const [view, setView] = useState('list');
-  const { arrivals, secondsAgo, state: arrivalsState } = useArrivals(selectedStop);
+  const { arrivals, fetchedAt, state: arrivalsState } = useArrivals(selectedStop);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
-  const handleStopSelect = (code) => {
+  const handleStopSelect = useCallback((code) => {
     setSelectedStop((prev) => (prev === code ? null : code));
-  };
+  }, []);
 
   const showPrivacyPage = useCallback(() => setShowPrivacy(true), []);
   const hidePrivacyPage = useCallback(() => setShowPrivacy(false), []);
@@ -35,22 +36,9 @@ export default function App() {
 
   if (geoState === GEOLOCATION_STATES.PENDING) {
     return (
-      <main className={styles.container}>
-        <div className={styles.topBar}>
-          <h1 className={styles.header}>{t.appTitle}</h1>
-          <button
-            className={styles.langBtn}
-            onClick={() => setLang(lang === 'el' ? 'en' : 'el')}
-            aria-label="Switch language"
-          >
-            {lang === 'el' ? 'EN' : 'EL'}
-          </button>
-        </div>
-        <LocationGate state={geoState} />
-        <footer className={styles.footer}>
-          <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.footerLink}>{t.privacyLink}</a>
-        </footer>
-      </main>
+      <AppShell onShowPrivacy={showPrivacyPage}>
+        <LocationGate state={geoState} onShowPrivacy={showPrivacyPage} />
+      </AppShell>
     );
   }
 
@@ -59,38 +47,19 @@ export default function App() {
     geoState === GEOLOCATION_STATES.UNAVAILABLE
   ) {
     return (
-      <main className={styles.container}>
-        <div className={styles.topBar}>
-          <h1 className={styles.header}>{t.appTitle}</h1>
-          <button
-            className={styles.langBtn}
-            onClick={() => setLang(lang === 'el' ? 'en' : 'el')}
-            aria-label="Switch language"
-          >
-            {lang === 'el' ? 'EN' : 'EL'}
-          </button>
-        </div>
-        <LocationGate state={geoState} onRetry={retry} />
-        <footer className={styles.footer}>
-          <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.footerLink}>{t.privacyLink}</a>
-        </footer>
-      </main>
+      <AppShell onShowPrivacy={showPrivacyPage}>
+        <LocationGate
+          state={geoState}
+          permissionState={permissionState}
+          onRetry={retry}
+          onShowPrivacy={showPrivacyPage}
+        />
+      </AppShell>
     );
   }
 
   return (
-    <main className={`${styles.container} ${view === 'map' ? styles.wide : ''}`}>
-      <div className={styles.topBar}>
-        <h1 className={styles.header}>{t.appTitle}</h1>
-        <button
-          className={styles.langBtn}
-          onClick={() => setLang(lang === 'el' ? 'en' : 'el')}
-          aria-label="Switch language"
-        >
-          {lang === 'el' ? 'EN' : 'EL'}
-        </button>
-      </div>
-
+    <AppShell wide={view === 'map'} onShowPrivacy={showPrivacyPage}>
       {stopsState === STOPS_STATES.LOADING && (
         <StatusMessage type="status" message={t.searchingStops} />
       )}
@@ -137,7 +106,7 @@ export default function App() {
                   isSelected={selectedStop === stop.code}
                   onSelect={handleStopSelect}
                   arrivals={arrivals}
-                  secondsAgo={secondsAgo}
+                  fetchedAt={fetchedAt}
                   arrivalsState={arrivalsState}
                 />
               ))}
@@ -151,7 +120,7 @@ export default function App() {
               selectedStop={selectedStop}
               onStopSelect={handleStopSelect}
               arrivals={arrivals}
-              secondsAgo={secondsAgo}
+              fetchedAt={fetchedAt}
               arrivalsState={arrivalsState}
             />
           )}
@@ -163,10 +132,6 @@ export default function App() {
         <p className={styles.dataCollectionText}>{t.dataCollectionText}</p>
         <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.dataCollectionLink}>{t.dataCollectionMore}</a>
       </section>
-
-      <footer className={styles.footer}>
-        <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.footerLink}>{t.privacyLink}</a>
-      </footer>
-    </main>
+    </AppShell>
   );
 }

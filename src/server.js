@@ -16,6 +16,15 @@ if (!Number.isFinite(PORT) || PORT < 1 || PORT > 65535) {
 const app = express();
 app.disable('x-powered-by');
 
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:");
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'geolocation=(self)');
+  next();
+});
+
 const TRUST_PROXY = Number.parseInt(process.env.TRUST_PROXY ?? '0', 10);
 if (Number.isFinite(TRUST_PROXY) && TRUST_PROXY > 0) {
   app.set('trust proxy', TRUST_PROXY);
@@ -39,16 +48,11 @@ if (hasDist) {
   app.use('/assets', express.static(join(distPath, 'assets'), {
     maxAge: '1y',
     immutable: true,
-    setHeaders: (res) => {
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    },
   }));
   app.use(express.static(distPath, {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('index.html')) {
         res.setHeader('Cache-Control', 'no-cache');
-      } else {
-        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       }
     },
   }));
@@ -56,8 +60,12 @@ if (hasDist) {
 
 app.use('/api', createApiRouter());
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', cache: cacheStats() });
+app.get('/api/health', (req, res) => {
+  if (process.env.DEBUG) {
+    res.json({ status: 'ok', cache: cacheStats() });
+  } else {
+    res.json({ status: 'ok' });
+  }
 });
 
 app.use((req, res) => {

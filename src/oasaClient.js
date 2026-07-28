@@ -29,6 +29,7 @@ async function callOasa(action, params) {
     response = await fetch(url, {
       method: 'POST',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { 'User-Agent': 'erhomai/0.1 (+https://erhomai.gr)' },
     });
   } catch (cause) {
     throw new OasaError(`Το OASA δεν απάντησε στο ${action}`, { action, cause });

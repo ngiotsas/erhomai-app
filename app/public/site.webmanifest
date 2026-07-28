@@ -1,0 +1,10 @@
+{
+  "name": "Έρχομαι",
+  "short_name": "Έρχομαι",
+  "description": "Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": []
+}

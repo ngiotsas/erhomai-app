@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n.jsx';
 import styles from './StopCard.module.css';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
+import SecondsAgo from '../SecondsAgo/SecondsAgo.jsx';
 import { FETCH_STATES } from '../../hooks/useArrivals.js';
 
 export default function StopCard({
@@ -10,7 +11,7 @@ export default function StopCard({
   isSelected,
   onSelect,
   arrivals,
-  secondsAgo,
+  fetchedAt,
   arrivalsState,
 }) {
   const { t, display, alternate } = useTranslation();
@@ -57,13 +58,11 @@ export default function StopCard({
           {arrivalsState === FETCH_STATES.READY && arrivals.length > 0 && (
             <>
               <ul className={styles.list} aria-label={t.arrivalsLabel}>
-                {arrivals.map((a, i) => (
-                  <ArrivalItem key={`${a.lineId}-${a.vehicleCode}-${i}`} arrival={a} />
+                {arrivals.map((a) => (
+                  <ArrivalItem key={a.vehicleCode} arrival={a} />
                 ))}
               </ul>
-              <p className={styles.staleIndicator} aria-live="polite">
-                {t.secondsAgo(secondsAgo)}
-              </p>
+              <SecondsAgo fetchedAt={fetchedAt} className={styles.staleIndicator} />
             </>
           )}
         </div>

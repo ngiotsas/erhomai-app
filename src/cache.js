@@ -4,6 +4,7 @@
 // φεύγει ένα μόνο request προς το OASA και όλοι παίρνουν το ίδιο αποτέλεσμα.
 
 const MAX_ENTRIES = 2000;
+const NEGATIVE_TTL_MS = 5000;
 
 const entries = new Map(); // key -> { value, expiresAt }
 const inFlight = new Map(); // key -> Promise
@@ -15,7 +16,8 @@ function deleteExpiredEntries() {
   }
 }
 
-function evictOldest() {
+// Κατά προσέγγιση LRU: η επαναπροσθήκη στο cache στη γραμμή 37 σπρώχνει τα συχνά κλειδιά προς το τέλος, οπότε η Map επιστρέφει πρώτα αυτά που χρησιμοποιήθηκαν λιγότερο.
+function evictLRU() {
   if (entries.size <= MAX_ENTRIES) return;
   for (const [key] of entries) {
     entries.delete(key);
@@ -31,6 +33,9 @@ function evictOldest() {
 export async function cached(key, ttlMs, produce) {
   const hit = entries.get(key);
   if (hit && hit.expiresAt > Date.now()) {
+    if (hit.value?.error) {
+      throw new Error(hit.value.message);
+    }
     entries.delete(key);
     entries.set(key, hit);
     return hit.value;
@@ -40,11 +45,16 @@ export async function cached(key, ttlMs, produce) {
   if (pending) return pending;
 
   const request = (async () => {
-    const value = await produce();
-    if (entries.size >= MAX_ENTRIES) deleteExpiredEntries();
-    evictOldest();
-    entries.set(key, { value, expiresAt: Date.now() + ttlMs });
-    return value;
+    try {
+      const value = await produce();
+      if (entries.size >= MAX_ENTRIES) deleteExpiredEntries();
+      evictLRU();
+      entries.set(key, { value, expiresAt: Date.now() + ttlMs });
+      return value;
+    } catch (err) {
+      entries.set(key, { value: { error: true, message: err.message }, expiresAt: Date.now() + NEGATIVE_TTL_MS });
+      throw err;
+    }
   })().finally(() => {
     inFlight.delete(key);
   });
