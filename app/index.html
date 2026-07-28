@@ -46,8 +46,7 @@
         document.getElementById('root').innerHTML = '<div style="padding:16px;color:red;font:13px monospace;"><strong>Unhandled:</strong><pre>'+String(e.reason)+'</pre></div>';
       });
     </script>
-    <script type="module">
-      document.getElementById('root').innerHTML = '<div style="padding:16px"><strong>Module script works!</strong></div>';
-    </script>
+    <div id="status" style="position:fixed;top:0;left:0;z-index:99999;background:#111;color:#0f0;font:11px monospace;padding:4px 8px;">.</div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
