@@ -39,6 +39,9 @@ export default function MapView({
   const mapRef = useRef(null);
   const markersRef = useRef({});
   const userMarkerRef = useRef(null);
+  const initialCoordsRef = useRef(null);
+
+  if (!initialCoordsRef.current && coords) initialCoordsRef.current = coords;
 
   const selectedStopData = useMemo(
     () => stops.find((s) => s.code === selectedStop),
@@ -46,13 +49,14 @@ export default function MapView({
   );
 
   useEffect(() => {
-    if (!coords) return;
     if (!containerRef.current || mapRef.current) return;
+    const center = initialCoordsRef.current;
+    if (!center) return;
 
     const map = new Map({
       container: containerRef.current,
       style: TILE_STYLE,
-      center: [coords.lng, coords.lat],
+      center: [center.lng, center.lat],
       zoom: 15,
       attributionControl: true,
       cooperativeGestures: true,
@@ -66,12 +70,16 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
     };
-  }, [coords?.lat, coords?.lng]);
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    createStyle(lang).then((style) => map.setStyle(style));
+    let cancelled = false;
+    createStyle(lang).then((style) => {
+      if (!cancelled) map.setStyle(style);
+    });
+    return () => { cancelled = true; };
   }, [lang]);
 
   useEffect(() => {
@@ -82,8 +90,7 @@ export default function MapView({
     markersRef.current = {};
 
     stops.forEach((stop) => {
-      const isSelected = stop.code === selectedStop;
-      const el = createStopElement(isSelected);
+      const el = createStopElement(false);
       el.title = display(stop.name, stop.nameEn);
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
@@ -129,7 +136,17 @@ export default function MapView({
       Object.values(markersRef.current).forEach((m) => m.remove());
       markersRef.current = {};
     };
-  }, [stops, selectedStop, display, t, onStopSelect]);
+  }, [stops, display, t, onStopSelect]);
+
+  useEffect(() => {
+    const stopCode = selectedStop;
+    if (!stopCode) return;
+    Object.entries(markersRef.current).forEach(([code, marker]) => {
+      const el = marker.getElement();
+      const isSelected = code === stopCode;
+      el.className = isSelected ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
+    });
+  }, [selectedStop]);
 
   useEffect(() => {
     const map = mapRef.current;

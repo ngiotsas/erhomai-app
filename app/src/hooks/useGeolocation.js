@@ -23,7 +23,7 @@ export function useGeolocation() {
       setCoords(null);
     }
 
-    navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
+    navigator.permissions?.query({ name: 'geolocation' }).then((perm) => {
       setPermissionState(perm.state);
       if (perm.state === 'denied') {
         setState(GEOLOCATION_STATES.DENIED);

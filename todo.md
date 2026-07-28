@@ -13,7 +13,6 @@ OpenFreeMap provides free OSM vector tiles with no API key, no registration, and
 
 ## Implementation details
 
-- `app/src/positron.json` — base OpenFreeMap Positron style JSON
 - `app/src/mapStyle.js` — `createStyle(lang)` transforms label expressions per language
 - `app/src/components/MapView/MapView.jsx` — uses `Map`, `Marker`, `Popup`, `NavigationControl` from maplibre-gl directly
 - MapLibre GL ~800KB added to bundle (expected for vector tile renderer)

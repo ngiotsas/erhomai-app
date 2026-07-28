@@ -11,7 +11,7 @@ export async function createStyle(lang) {
   const style = JSON.parse(JSON.stringify(await loadStyle()));
   if (lang === 'el') return style;
   for (const layer of style.layers || []) {
-    if (layer.layout && layer.layout['text-field']) {
+    if (layer.type === 'symbol' && layer.layout && layer.layout['text-field']) {
       layer.layout['text-field'] = ['coalesce', ['get', 'name_en'], ['get', 'name']];
     }
   }

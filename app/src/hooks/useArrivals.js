@@ -13,7 +13,6 @@ export function useArrivals(stopCode) {
   const [arrivals, setArrivals] = useState(null);
   const [fetchedAt, setFetchedAt] = useState(null);
   const [state, setState] = useState(FETCH_STATES.IDLE);
-  const [secondsAgo, setSecondsAgo] = useState(0);
   const activeStopRef = useRef(stopCode);
   const lastFetchRef = useRef(0);
   const abortRef = useRef(null);
@@ -32,7 +31,6 @@ export function useArrivals(stopCode) {
       if (activeStopRef.current !== code) return;
       setArrivals(data.arrivals ?? []);
       setFetchedAt(Date.now());
-      setSecondsAgo(0);
       setState(FETCH_STATES.READY);
     } catch (error) {
       if (error.name === 'AbortError') return;
@@ -48,7 +46,6 @@ export function useArrivals(stopCode) {
       setArrivals(null);
       setFetchedAt(null);
       setState(FETCH_STATES.IDLE);
-      setSecondsAgo(0);
       return;
     }
 
@@ -56,7 +53,6 @@ export function useArrivals(stopCode) {
     setArrivals(null);
     setFetchedAt(null);
     setState(FETCH_STATES.IDLE);
-    setSecondsAgo(0);
 
     fetchArrivals(stopCode);
     lastFetchRef.current = Date.now();
@@ -81,16 +77,6 @@ export function useArrivals(stopCode) {
       abortRef.current?.abort();
     };
   }, [stopCode, fetchArrivals]);
-
-  useEffect(() => {
-    if (state !== FETCH_STATES.READY || !fetchedAt) return;
-
-    const id = setInterval(() => {
-      setSecondsAgo(Math.floor((Date.now() - fetchedAt) / 1000));
-    }, 1000);
-
-    return () => clearInterval(id);
-  }, [state, fetchedAt]);
 
   return { arrivals, fetchedAt, state };
 }

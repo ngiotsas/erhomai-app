@@ -34,7 +34,7 @@ export async function cached(key, ttlMs, produce) {
   const hit = entries.get(key);
   if (hit && hit.expiresAt > Date.now()) {
     if (hit.value?.error) {
-      throw new Error(hit.value.message);
+      throw hit.value.errorObj;
     }
     entries.delete(key);
     entries.set(key, hit);
@@ -52,7 +52,7 @@ export async function cached(key, ttlMs, produce) {
       entries.set(key, { value, expiresAt: Date.now() + ttlMs });
       return value;
     } catch (err) {
-      entries.set(key, { value: { error: true, message: err.message }, expiresAt: Date.now() + NEGATIVE_TTL_MS });
+      entries.set(key, { value: { error: true, errorObj: err }, expiresAt: Date.now() + NEGATIVE_TTL_MS });
       throw err;
     }
   })().finally(() => {
