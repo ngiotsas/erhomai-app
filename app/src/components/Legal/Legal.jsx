@@ -1,7 +1,7 @@
 import { useTranslation } from '../../i18n.jsx';
-import styles from './PrivacyPolicy.module.css';
+import styles from './Legal.module.css';
 
-export default function PrivacyPolicy({ onBack }) {
+export default function LegalNotice({ onBack }) {
   const { t } = useTranslation();
 
   return (

@@ -7,7 +7,7 @@ import LocationGate from './components/LocationGate/LocationGate.jsx';
 import StopCard from './components/StopCard/StopCard.jsx';
 import MapView from './components/MapView/MapView.jsx';
 import StatusMessage from './components/StatusMessage/StatusMessage.jsx';
-import PrivacyPolicy from './components/PrivacyPolicy/PrivacyPolicy.jsx';
+import LegalNotice from './components/Legal/Legal.jsx';
 import styles from './App.module.css';
 
 export default function App() {
@@ -30,7 +30,7 @@ export default function App() {
   const hidePrivacyPage = useCallback(() => setShowPrivacy(false), []);
 
   if (showPrivacy) {
-    return <PrivacyPolicy onBack={hidePrivacyPage} />;
+    return <LegalNotice onBack={hidePrivacyPage} />;
   }
 
   if (geoState === GEOLOCATION_STATES.PENDING) {
