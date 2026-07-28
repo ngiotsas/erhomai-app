@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 import styles from './StopCard.module.css';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
@@ -34,7 +34,8 @@ export default function StopCard({
         aria-label={t.stopLabel(display(stop.name, stop.nameEn), stop.distanceMeters)}
       >
         <div className={styles.badge}>
-          <span className={styles.distance}>{stop.distanceMeters} {t.metersShort}</span>
+          {/* eslint-disable-next-line no-irregular-whitespace */}
+          <span className={styles.distance}>{stop.distanceMeters} {t.metersShort}</span>
         </div>
         <div className={styles.info}>
           <h2 className={styles.stopName}>{display(stop.name, stop.nameEn)}</h2>

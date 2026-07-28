@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Map, NavigationControl, Marker, Popup } from 'maplibre-gl';
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 import { createStyle } from '../../mapStyle.js';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
@@ -84,7 +84,7 @@ export default function MapView({
     let cancelled = false;
     createStyle(lang).then((style) => {
       if (!cancelled) map.setStyle(style);
-    }).catch(() => {});
+    }).catch((err) => { console.warn('[mapStyle]', err); });
     return () => { cancelled = true; };
   }, [lang]);
 
@@ -144,7 +144,7 @@ export default function MapView({
       Object.values(markersRef.current).forEach((m) => m.remove());
       markersRef.current = {};
     };
-  }, [stops, selectedStop, display, t, onStopSelect]);
+  }, [stops, display, t, onStopSelect]); // eslint-disable-line react-hooks/exhaustive-deps -- selectedStop handled via applySelectionStyle
 
   useEffect(() => {
     applySelectionStyle(markersRef.current, selectedStop);

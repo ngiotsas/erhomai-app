@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 
 export default function SecondsAgo({ fetchedAt, className }) {
   const { t } = useTranslation();

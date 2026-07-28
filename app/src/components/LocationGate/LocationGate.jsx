@@ -1,5 +1,5 @@
 import { GEOLOCATION_STATES } from '../../hooks/useGeolocation.js';
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 import styles from './LocationGate.module.css';
 
 function GdprNotice({ onShowPrivacy }) {

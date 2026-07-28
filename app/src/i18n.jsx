@@ -1,23 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toLatin } from './transliterate.js';
 import { translations } from './translations.js';
+import { LangContext } from './LangContext.js';
 
 const LANG_KEY = 'erhomai-lang';
-
-const defaultDisplay = (greekText, englishText) => {
-  if (!greekText) return englishText ?? greekText;
-  return greekText;
-};
-const defaultAlternate = () => null;
-const defaultContext = {
-  lang: 'el',
-  setLang: () => {},
-  t: translations.el,
-  display: defaultDisplay,
-  alternate: defaultAlternate,
-};
-
-const LangContext = createContext(defaultContext);
 
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
@@ -56,8 +42,4 @@ export function LangProvider({ children }) {
       {children}
     </LangContext.Provider>
   );
-}
-
-export function useTranslation() {
-  return useContext(LangContext);
 }

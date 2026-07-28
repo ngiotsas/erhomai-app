@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 import styles from './ArrivalItem.module.css';
 
 export default memo(function ArrivalItem({ arrival }) {

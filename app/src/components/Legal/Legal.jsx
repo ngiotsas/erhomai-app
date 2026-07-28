@@ -1,4 +1,4 @@
-import { useTranslation } from '../../i18n.jsx';
+import { useTranslation } from '../../LangContext.js';
 import styles from './Legal.module.css';
 
 export default function LegalNotice({ onBack }) {

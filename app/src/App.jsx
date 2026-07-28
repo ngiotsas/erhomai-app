@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useGeolocation, GEOLOCATION_STATES } from './hooks/useGeolocation.js';
 import { useStops, FETCH_STATES as STOPS_STATES } from './hooks/useStops.js';
 import { useArrivals } from './hooks/useArrivals.js';
-import { useTranslation } from './i18n.jsx';
+import { useTranslation } from './LangContext.js';
 import LocationGate from './components/LocationGate/LocationGate.jsx';
 import StopCard from './components/StopCard/StopCard.jsx';
 import MapView from './components/MapView/MapView.jsx';
