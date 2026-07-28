@@ -39,6 +39,11 @@
     <noscript>Please enable JavaScript to use this app. | <span lang="el">Παρακαλώ ενεργοποιήστε τη JavaScript.</span></noscript>
     <script>
       document.getElementById('loading-msg').remove();
+      window.addEventListener('error', function(e) {
+        if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+          document.getElementById('root').innerHTML = '<div style="padding:16px;color:red;font:13px monospace;"><strong>Failed to load:</strong><pre>'+e.target.src||e.target.href+'</pre></div>';
+        }
+      }, true);
       window.onerror = function(m, s, l, c, e) {
         document.getElementById('root').innerHTML = '<div style="padding:16px;color:red;font:13px monospace;"><strong>Error:</strong><pre>'+String(m)+'\n'+String(s)+':'+l+':'+c+'</pre></div>';
       };
