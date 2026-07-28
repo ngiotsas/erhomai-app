@@ -39,11 +39,16 @@ if (hasDist) {
   app.use('/assets', express.static(join(distPath, 'assets'), {
     maxAge: '1y',
     immutable: true,
+    setHeaders: (res) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
   }));
   app.use(express.static(distPath, {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('index.html')) {
         res.setHeader('Cache-Control', 'no-cache');
+      } else {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       }
     },
   }));
