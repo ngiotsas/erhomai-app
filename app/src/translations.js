@@ -63,6 +63,8 @@ export const translations = {
     dataCollectionTitle: 'Πώς συλλέγουμε τα δεδομένα σου',
     dataCollectionText: 'Η τοποθεσία σου χρησιμοποιείται αποκλειστικά για την εύρεση κοντινών στάσεων και δεν αποθηκεύεται. Η διεύθυνση IP σου κρατείται προσωρινά (60 δευτερόλεπτα) για λόγους ασφαλείας. Δεν χρησιμοποιούμε cookies (πέρα από αυτά του εργαλείου προσβασιμότητας), analytics ή διαφημίσεις.',
     dataCollectionMore: 'Αναλυτικά στην πολιτική απορρήτου',
+    showAllStops: 'Προβολή όλων των στάσεων',
+    showNearestStops: 'Πλησιέστερες στάσεις',
   },
   en: {
     appTitle: 'Erhomai',
@@ -128,5 +130,7 @@ export const translations = {
     dataCollectionTitle: 'How we collect your data',
     dataCollectionText: 'Your location is used only to find nearby bus stops and is never stored. Your IP address is kept temporarily (60 seconds) for security purposes. Apart from the UserWay accessibility widget, we use no cookies, analytics, or ads.',
     dataCollectionMore: 'Read our full privacy policy',
+    showAllStops: 'Show all stops',
+    showNearestStops: 'Nearest stops',
   },
 };

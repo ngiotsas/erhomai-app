@@ -15,9 +15,12 @@ const MapView = lazy(() => import('./components/MapView/MapView.jsx'));
 export default function App() {
   const { t } = useTranslation();
   const { coords, state: geoState, permissionState, retry } = useGeolocation();
+  const [showAllStops, setShowAllStops] = useState(false);
+  const stopsLimit = showAllStops ? 20 : 5;
   const { stops, state: stopsState } = useStops(
     coords?.lat,
     coords?.lng,
+    stopsLimit,
   );
   const [selectedStop, setSelectedStop] = useState(null);
   const [view, setView] = useState('list');
@@ -96,6 +99,12 @@ export default function App() {
                 {t.mapView}
               </button>
             </div>
+            <button
+              className={styles.allStopsBtn}
+              onClick={() => { setShowAllStops((prev) => !prev); setSelectedStop(null); }}
+            >
+              {showAllStops ? t.showNearestStops : t.showAllStops}
+            </button>
           </div>
 
           {view === 'list' && (

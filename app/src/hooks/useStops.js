@@ -8,7 +8,7 @@ export const FETCH_STATES = {
   OUTSIDE_AREA: 'outside_area',
 };
 
-export function useStops(lat, lng) {
+export function useStops(lat, lng, limit = 5) {
   const [stops, setStops] = useState(null);
   const [state, setState] = useState(FETCH_STATES.IDLE);
   const abortRef = useRef(null);
@@ -19,7 +19,7 @@ export function useStops(lat, lng) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch(`/api/stops?lat=${lat}&lng=${lng}&limit=5`, {
+      const res = await fetch(`/api/stops?lat=${lat}&lng=${lng}&limit=${limit}`, {
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
       });
       if (!res.ok) {
@@ -38,7 +38,7 @@ export function useStops(lat, lng) {
       console.error('[stops]', error);
       setState(FETCH_STATES.ERROR);
     }
-  }, [lat, lng]);
+  }, [lat, lng, limit]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- fetches when coords change */
   useEffect(() => {
