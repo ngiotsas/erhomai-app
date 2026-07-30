@@ -177,7 +177,6 @@ export default function SearchView({
               <input
                 className={styles.input}
                 type="text"
-                inputMode="numeric"
                 value={lineSearch.query}
                 onChange={(e) => { lineSearch.search(e.target.value); setSelectedLineId(null); }}
                 placeholder={t.searchLinePlaceholder}
