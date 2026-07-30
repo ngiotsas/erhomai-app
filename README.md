@@ -4,7 +4,7 @@ Bus arrival times for the nearest OASA stop in Athens.
 
 You open the site, it asks for your location, it finds the stops around you, and it tells you how many minutes until the next bus. That is the whole product.
 
-**Status:** backend + React frontend (list view + MapLibre GL JS map) are built and working. Greek/English i18n with transliteration.
+**Status:** deployed to [erhomai.gr](https://erhomai.gr) on Cloudflare Pages with Workers Functions. React frontend with MapLibre GL JS map, list view, line/stop search, Greek/English i18n with transliteration.
 
 ## Why a backend exists at all
 
@@ -14,64 +14,81 @@ The OASA telematics API could in theory be called straight from the browser. It 
 2. **No CORS headers.** Even over HTTP, the browser would reject the response.
 3. **A fragile upstream.** The OASA API goes down often and rate-limits aggressively. HTTP (port 80) is firewalled, so HTTPS (port 443) must be used.
 
-So this server sits in the middle. It proxies the calls, caches the answers so one busy stop does not generate hundreds of upstream requests, and hands the frontend clean JSON with real line names instead of internal route codes.
+So a backend sits in the middle. It proxies the calls, caches the answers so one busy stop does not generate hundreds of upstream requests, and hands the frontend clean JSON with real line names instead of internal route codes.
 
-## Requirements
+## Deploying
 
-- Node.js 20 or newer (developed and tested on 22)
-- Network connectivity to `telematics.oasa.gr` over HTTPS (port 443)
+### Cloudflare Workers (recommended)
 
-## Install
+The site runs on Cloudflare Pages with Functions:
+
+```
+erhomai.gr → Cloudflare Pages (static assets + Functions)
+├── app/dist/                  → React SPA (Vite build)
+├── functions/                 → Pages Functions (API handlers)
+│   ├── _lib/                  → Shared: geo, OASA client, caching, search index
+│   └── api/                   → Route handlers: stops, arrivals, lines, search
+└── wrangler.toml              → Cloudflare config + KV namespace
+```
+
+**Prerequisites:** Cloudflare account, `wrangler` CLI, API token with Pages + KV permissions.
 
 ```bash
 git clone https://github.com/ngiotsas/erhomai-app.git erhomai
 cd erhomai
-npm install           # Backend (Express)
-cd app && npm install # Frontend (React + Vite + MapLibre GL JS)
-cd ..
+cd app && npm install && cd ..
+
+# Build frontend
+npm --prefix app run build
+
+# Create KV namespace (one-time)
+wrangler kv namespace create "SEARCH_INDEX"
+
+# Update wrangler.toml with the namespace ID, then deploy
+wrangler pages deploy app/dist --project-name erhomai --branch main
 ```
 
-## Run
+**Custom domain:** add `erhomai.gr` via the Pages dashboard or API. Pages auto-provisions DNS + SSL for Cloudflare-managed domains.
 
-### Development
+### Node.js (alternative)
 
-Backend alone (auto-restart on file changes):
-
-```bash
-npm run dev
-```
-
-Frontend alone (Vite with HMR on port 5173, proxies /api to :3000):
+The original Express backend is preserved in `src/`. Deploy it behind a reverse proxy:
 
 ```bash
-npm --prefix app run dev
-```
-
-Both together:
-
-```bash
-npm run dev:ui
-```
-
-### Production
-
-Build the frontend, then start the server:
-
-```bash
+npm install
+cd app && npm install && cd ..
 npm run build:ui
-npm start
+TRUST_PROXY=1 PORT=3000 npm start
 ```
 
-The server listens on port 3000 and serves the built frontend from `app/dist/`. Override the port:
+Caddy example:
 
-```bash
-PORT=8080 npm start
+```
+erhomai.gr {
+    reverse_proxy localhost:3000
+}
 ```
 
-When deploying behind a reverse proxy (Caddy, nginx), set `TRUST_PROXY` to the number of proxy hops so the rate limiter sees real client IPs:
+## Development
+
+### Workers (current default)
 
 ```bash
-TRUST_PROXY=1 npm start
+# Frontend dev server (Vite HMR on port 5173)
+npm --prefix app run dev
+
+# Functions are deployed to Cloudflare for testing:
+wrangler pages deploy app/dist --project-name erhomai
+```
+
+### Node.js
+
+```bash
+# Backend (auto-restart on file changes)
+npm run dev
+
+# Both backend + frontend
+npm run dev:ui
 ```
 
 ## Tests
@@ -80,17 +97,9 @@ TRUST_PROXY=1 npm start
 npm test
 ```
 
-## Check that it works
-
-```bash
-curl "http://localhost:3000/health"
-curl "http://localhost:3000/api/stops?lat=37.9838&lng=23.7275"
-curl "http://localhost:3000/api/arrivals?stop=400075"
-```
-
-The first coordinates point at Syntagma Square, and stop 400075 is ΗΣΑΠ Ν. ΦΑΛΗΡΟΥ. If the second and third commands return `502 upstream_unavailable`, the OASA API is either down or temporarily unreachable.
-
 ## API
+
+All endpoints return JSON. Greek/Latin character normalization is applied to line IDs — typing "X95" finds "Χ95", "B5" finds "Β5".
 
 ### `GET /api/stops`
 
@@ -150,30 +159,116 @@ Lists the buses approaching a stop.
 
 Behind one call, the server makes two upstream requests in parallel. `getStopArrivals` returns route codes and minutes, `webRoutesForStop` returns the mapping from route codes to line names (with English translations when available), and this endpoint joins them.
 
+### `GET /api/lines`
+
+Search all OASA bus lines.
+
+| Parameter | Required | Description |
+|---|---|---|
+| `q` | no | Search term. Matches line ID, Greek name, or English name |
+
+```json
+[
+  {
+    "lineCode": "1025",
+    "lineId": "X95",
+    "lineName": "ΣΥΝΤΑΓΜΑ - ΑΕΡΟΛ. ΑΘΗΝΩΝ (EXPRESS)",
+    "lineNameEn": "SYNTAGMA - AEROL. ATHINON (EXPRESS)"
+  }
+]
+```
+
+Searches are case-insensitive and normalize Greek ↔ Latin lookalike characters (X ↔ Χ, B ↔ Β, etc.).
+
+### `GET /api/lines/:lineId/stops`
+
+Returns all stops for a bus line, grouped by route direction.
+
+```json
+{
+  "lineId": "X95",
+  "lineName": "ΣΥΝΤΑΓΜΑ - ΑΕΡΟΛ. ΑΘΗΝΩΝ (EXPRESS)",
+  "lineNameEn": "SYNTAGMA - AEROL. ATHINON (EXPRESS)",
+  "routes": [{
+    "routeCode": "2051",
+    "routeName": "ΣΥΝΤΑΓΜΑ - ΑΕΡΟΛ. ΑΘΗΝΩΝ [EXPRESS]",
+    "routeNameEn": "SYNTAGMA - AEROL. ATHINON [EXPRESS]",
+    "stops": [{
+      "code": "10361",
+      "name": "ΣΥΝΤΑΓΜΑ",
+      "nameEn": "SYNTAGMA",
+      "lat": 37.974908,
+      "lng": 23.7348845,
+      "order": 1
+    }]
+  }]
+}
+```
+
+### `GET /api/search-stops`
+
+Search stops by name (Greek, English, or street).
+
+| Parameter | Required | Description |
+|---|---|---|
+| `q` | yes | Search term, minimum 2 characters |
+
+Returns up to 20 matching stops with their coordinates. The search index is built from all OASA routes and cached in KV for 12 hours.
+
+### `GET /api/health`
+
+```json
+{ "status": "ok" }
+```
+
 ### Errors
 
 | Status | `error` | Meaning |
 |---|---|---|
 | 400 | `invalid_coordinates` | `lat` or `lng` missing or out of range |
+| 400 | `outside_service_area` | Coordinates outside the Athens metropolitan area |
 | 400 | `invalid_stop_code` | `stop` is not a number |
+| 404 | `line_not_found` | The line ID does not exist in the OASA data |
 | 404 | `not_found` | Unknown endpoint |
-| 502 | `upstream_unavailable` | OASA timed out, refused the request, or returned malformed data |
+| 502 | `oasa_unavailable` | OASA timed out, refused the request, or returned malformed data |
 | 500 | `internal_error` | A bug in this code |
 
 ## Layout
 
 ```
-├── src/                         # Backend (Express API)
+├── src/                         # Original Express backend (preserved)
 │   ├── server.js                # Express setup, static file serving, error handling
-│   ├── api.js                   # /api/stops and /api/arrivals endpoints
+│   ├── api.js                   # /api/stops, /api/arrivals, /api/lines, /api/search-stops
 │   ├── oasaClient.js            # Calls to telematics.oasa.gr, response normalization
 │   ├── cache.js                 # TTL cache with singleflight
-│   └── geo.js                   # Haversine distance and coordinate validation
+│   ├── geo.js                   # Haversine distance and coordinate validation
+│   └── searchIndex.js           # In-memory stop search index
+│
+├── functions/                   # Cloudflare Pages Functions (current backend)
+│   ├── _lib/
+│   │   ├── geo.js               # Haversine, coordinate validation
+│   │   ├── oasaClient.js        # OASA API client (standard fetch)
+│   │   ├── cache.js             # Two-layer: Cache API + in-memory singleflight
+│   │   └── searchIndex.js       # KV-backed search index with lazy build
+│   ├── api/
+│   │   ├── _middleware.js       # Rate limiting + security headers
+│   │   ├── stops.js             # GET /api/stops
+│   │   ├── arrivals.js          # GET /api/arrivals
+│   │   ├── lines.js             # GET /api/lines (with Greek/Latin normalization)
+│   │   ├── search-stops.js      # GET /api/search-stops
+│   │   ├── health.js            # GET /api/health
+│   │   ├── _cron/rebuild-index.js  # Cron: rebuild search index
+│   │   └── lines/[lineId]/stops.js  # GET /api/lines/:lineId/stops
+│   └── sitemap.xml.js           # Dynamic sitemap with hreflang
 │
 ├── app/                         # Frontend (React + Vite + MapLibre GL JS)
-│   ├── index.html               # HTML shell with SEO meta tags, OG, JSON-LD
+│   ├── index.html               # HTML shell with SEO: OG, Twitter, JSON-LD, hreflang
 │   ├── vite.config.js           # Vite config, /api proxy to :3000
-│   ├── public/robots.txt
+│   ├── public/
+│   │   ├── _headers             # Cache rules for static assets
+│   │   ├── _redirects           # www → apex 301 redirect
+│   │   ├── robots.txt           # Allow /, disallow /api/, sitemap reference
+│   │   └── assets/              # MapLibre worker files
 │   └── src/
 │       ├── main.jsx             # React entry point
 │       ├── index.css            # CSS variables, reset, focus-visible, sr-only
@@ -193,13 +288,15 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 │           ├── StopCard/           # Stop row with expandable arrivals
 │           ├── ArrivalItem/        # Line badge + name + minutes
 │           ├── MapView/            # MapLibre GL JS map with bus-stop pins + arrivals panel
+│           ├── SearchView/         # Line search + stop name search
 │           ├── StatusMessage/      # Loading/error/empty states
-│           ├── Legal/              # Attribution / legal notice
+│           ├── Legal/              # Privacy policy
 │           ├── AppShell/           # App layout shell
 │           └── SecondsAgo/         # "X seconds ago" freshness indicator
 │
-├── package.json                 # Root: backend deps + dev/ui/build scripts
-├── todo.md                      # Resolved: English map tiles
+├── wrangler.toml                # Cloudflare Pages configuration
+├── package.json                 # Root: Express deps + dev scripts
+├── todo.md
 └── README.md
 ```
 
@@ -207,46 +304,34 @@ Behind one call, the server makes two upstream requests in parallel. `getStopArr
 
 ### Features
 
-- **List view** — nearest 5 stops with distance, expandable arrival times
+- **List view** — nearest stops with distance, expandable arrival times
 - **Map view** — MapLibre GL JS map with bus-stop pin markers, tap for arrivals panel, re-centre button
-- **View toggle** — Λίστα / Χάρτης segmented button
+- **Search** — Search bus lines by number (e.g., "X95", "021") or stop by name
+- **Line stops** — View all stops along a bus line grouped by direction
+- **View toggle** — Λίστα / Χάρτης / Αναζήτηση segmented button
 - **Greek / English** — i18n with automatic browser language detection, localStorage persistence. Stop names, line names, and directions use OASA's English translations when available, otherwise transliterate Greek to Latin.
 - **Auto-refresh** — Arrivals poll every 25 seconds with a "X seconds ago" freshness indicator
 - **Accessibility** — Semantic HTML (`<main>`, `<article>`, `<section>`), ARIA labels, keyboard navigation, `aria-live` regions, `focus-visible` outlines, 44px touch targets
 - **Mobile-first responsive** — Dynamic viewport units (`dvh`), safe area padding, responsive map height
-- **Technical SEO** — Open Graph, Twitter Cards, JSON-LD structured data, canonical URL, robots.txt
+- **SEO** — Open Graph, Twitter Cards (`summary` + image), JSON-LD (`WebApplication` + `Organization` + `BreadcrumbList`), hreflang (`el`, `en`, `x-default`), canonical URL, dynamic sitemap.xml, noscript fallback, `_headers` for asset caching, `_redirects` for www→apex
 
 ## Caching
 
-The cache lives in process memory. It disappears on restart, which is fine because everything in it is cheap to refetch.
+Two layers depending on deployment target:
+
+**Workers:** Cloudflare Cache API (cross-isolate, CDN-level) + in-memory Map (singleflight within one isolate). Negative caching: OASA errors are cached for 5 seconds to prevent retry storms.
+
+**Node.js:** In-memory Map with TTL, singleflight, and LRU eviction.
 
 | Data | Lifetime | Reason |
 |---|---|---|
 | Arrivals | 25 seconds | Buses move, but nobody needs sub-minute precision |
 | Routes per stop | 12 hours | Which lines serve a stop changes a few times a year |
 | Nearest stops | 5 minutes | Keyed by coordinates rounded to four decimals, roughly 11 metres |
+| All lines | 12 hours | The OASA line list changes very rarely |
+| Search index | 12 hours | Stop name index, stored in KV on Workers |
 
 Requests that miss the cache go through singleflight. Fifty users loading the same stop at the same moment produce one upstream call, not fifty.
-
-If you later run more than one instance of this server, replace the in-memory map in `src/cache.js` with Redis. Nothing else needs to change.
-
-## Deploying
-
-Serve the app behind a reverse proxy that terminates TLS. Caddy handles this in two lines:
-
-```
-erhomai.gr {
-    reverse_proxy localhost:3000
-}
-```
-
-Start the server with `TRUST_PROXY=1` so the rate limiter sees real client IPs instead of the proxy's:
-
-```bash
-TRUST_PROXY=1 npm start
-```
-
-HTTPS is mandatory, not a nicety. Without a valid certificate the browser will never give you the user's location, and the site has nothing to show.
 
 ## Known rough edges
 
@@ -257,6 +342,8 @@ HTTPS is mandatory, not a nicety. Without a valid certificate the browser will n
 **Attica-only.** `/api/stops` rejects coordinates outside the Athens metropolitan area (37.6–38.4°N, 23.3–24.2°E) with a dedicated message. If OASA ever adds service outside Attica, expand the bounding box in `src/geo.js`.
 
 **English map tiles.** Map labels are rendered from OpenFreeMap vector tiles. Greek mode uses the `name` field; English mode uses `coalesce(name_en, name)` to show English names when available, with a Greek fallback.
+
+**Greek line IDs in URLs.** Some OASA line IDs contain Greek characters (e.g., "Χ95", "Β5"). The frontend normalizes them to Latin before constructing API URLs. The lines search also normalizes Greek ↔ Latin for matching.
 
 ## Credit
 
