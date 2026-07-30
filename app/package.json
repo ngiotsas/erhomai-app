@@ -9,6 +9,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "hono": "^4.10.0",
     "maplibre-gl": "^6.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

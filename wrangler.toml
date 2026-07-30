@@ -1,0 +1,25 @@
+name = "erhomai"
+
+# Pages project: static files from app/dist, Functions from app/functions/
+pages_build_output_dir = "app/dist"
+
+# KV namespace for the search index (create with: wrangler kv:namespace create "SEARCH_INDEX")
+# [[kv_namespaces]]
+# binding = "SEARCH_INDEX"
+# id = "<namespace-id>"
+
+# Cron trigger to rebuild search index every 12 hours
+# [triggers]
+# crons = ["0 */12 * * *"]
+
+# Forward cron to /api/_cron/rebuild-index
+# [routes]
+# pattern = "/api/_cron/rebuild-index"
+# script = "_worker"
+
+[build]
+command = "npm --prefix app run build"
+
+[deployment]
+compatibility_date = "2025-07-01"
+compatibility_flags = ["nodejs_compat"]
