@@ -37,18 +37,26 @@ export async function onRequestGet(context) {
 
   const limit = parseStopLimit(searchParams.get('limit'));
   const cacheKey = `stops:${lat.toFixed(4)}:${lng.toFixed(4)}`;
-  const stops = await cached(cacheKey, STOPS_TTL_MS, () => fetchClosestStops(lat, lng));
 
-  const nearest = stops
-    .map((stop) => ({
-      ...stop,
-      distanceMeters: Math.round(distanceInMeters(lat, lng, stop.lat, stop.lng)),
-    }))
-    .sort((a, b) => a.distanceMeters - b.distanceMeters)
-    .slice(0, limit);
+  try {
+    const stops = await cached(cacheKey, STOPS_TTL_MS, () => fetchClosestStops(lat, lng));
 
-  return new Response(
-    JSON.stringify({ origin: { lat, lng }, stops: nearest }),
-    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=60' } },
-  );
+    const nearest = stops
+      .map((stop) => ({
+        ...stop,
+        distanceMeters: Math.round(distanceInMeters(lat, lng, stop.lat, stop.lng)),
+      }))
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, limit);
+
+    return new Response(
+      JSON.stringify({ origin: { lat, lng }, stops: nearest }),
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=60' } },
+    );
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 }
