@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { cached } from './cache.js';
 import { distanceInMeters, isValidLatitude, isValidLongitude, isWithinServiceArea } from './geo.js';
-import { fetchClosestStops, fetchRoutesForStop, fetchStopArrivals } from './oasaClient.js';
+import { fetchClosestStops, fetchRoutesForStop, fetchStopArrivals, fetchAllLines, fetchRoutesForLine, fetchRouteStops } from './oasaClient.js';
+import { searchStops, initSearchIndex, indexStatus } from './searchIndex.js';
 
 const STOPS_TTL_MS = 5 * 60 * 1000;
 const ARRIVALS_TTL_MS = 25 * 1000;
 const ROUTES_TTL_MS = 12 * 60 * 60 * 1000;
+const LINES_TTL_MS = 12 * 60 * 60 * 1000;
 
 const DEFAULT_STOP_LIMIT = 5;
 const MAX_STOP_LIMIT = 20;
@@ -107,6 +109,87 @@ export function createApiRouter() {
       fetchedAt: new Date().toISOString(),
       arrivals: enriched,
     });
+  });
+
+  // GET /api/lines — όλες οι γραμμές
+  router.get('/lines', async (req, res) => {
+    try {
+      const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
+      const q = (req.query.q ?? '').toString().toLowerCase().trim();
+      let filtered = lines;
+      if (q) {
+        filtered = lines.filter(
+          (l) => l.lineId.toLowerCase().includes(q) || l.lineName.toLowerCase().includes(q),
+        );
+      }
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.json(filtered.slice(0, 50));
+    } catch {
+      res.status(502).json({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' });
+    }
+  });
+
+  // GET /api/lines/:lineId/stops — στάσεις για μία γραμμή
+  router.get('/lines/:lineId/stops', async (req, res) => {
+    try {
+      const { lineId } = req.params;
+      const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
+      const matching = lines.filter((l) => l.lineId === lineId);
+
+      if (matching.length === 0) {
+        res.status(404).json({ error: 'line_not_found', message: 'Η γραμμή δεν βρέθηκε.' });
+        return;
+      }
+
+      const primary = matching[0];
+      const allRouteCodes = new Set();
+      const routeNames = [];
+
+      for (const line of matching) {
+        const routes = await cached(`routes:${line.lineCode}`, ROUTES_TTL_MS, () =>
+          fetchRoutesForLine(line.lineCode),
+        );
+        for (const route of routes) {
+          allRouteCodes.add(route.routeCode);
+          routeNames.push({ routeCode: route.routeCode, routeName: route.routeName, routeNameEn: route.routeNameEn });
+        }
+      }
+
+      const routeStops = [];
+      for (const rc of allRouteCodes) {
+        const stops = await cached(`stops:route:${rc}`, ROUTES_TTL_MS, () => fetchRouteStops(rc));
+        routeStops.push({ routeCode: rc, stops });
+      }
+
+      const stopsByRoute = Object.fromEntries(
+        routeStops.map((rs) => [rs.routeCode, rs.stops]),
+      );
+
+      res.setHeader('Cache-Control', 'public, max-age=600');
+      res.json({
+        lineId,
+        lineName: primary.lineName,
+        lineNameEn: primary.lineNameEn,
+        routes: routeNames.map((r) => ({
+          ...r,
+          stops: stopsByRoute[r.routeCode] ?? [],
+        })),
+      });
+    } catch {
+      res.status(502).json({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' });
+    }
+  });
+
+  // GET /api/search-stops?q=... — αναζήτηση στάσεων με όνομα
+  router.get('/search-stops', (req, res) => {
+    const q = (req.query.q ?? '').trim();
+    if (!q || q.length < 2) {
+      res.json({ stops: [], index: indexStatus() });
+      return;
+    }
+    const stops = searchStops(q);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.json({ stops, index: indexStatus() });
   });
 
   return router;

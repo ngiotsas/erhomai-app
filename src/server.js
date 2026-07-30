@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createApiRouter } from './api.js';
 import { cacheStats } from './cache.js';
 import { OasaError } from './oasaClient.js';
+import { initSearchIndex } from './searchIndex.js';
 
 const PORT = Number.parseInt(process.env.PORT ?? '3000', 10);
 if (!Number.isFinite(PORT) || PORT < 1 || PORT > 65535) {
@@ -106,3 +107,5 @@ app.listen(PORT, () => {
   }
   process.exit(1);
 });
+
+initSearchIndex();

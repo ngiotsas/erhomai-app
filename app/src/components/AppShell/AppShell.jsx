@@ -6,7 +6,10 @@ export default function AppShell({ wide, children, onShowPrivacy }) {
   return (
     <main className={`${styles.container} ${wide ? styles.wide : ''}`}>
       <div className={styles.topBar}>
-        <h1 className={styles.header}>{t.appTitle}</h1>
+        <div className={styles.titleWrap}>
+          <h1 className={styles.header}>{t.appTitle}</h1>
+          <span className={styles.betaTag}>BETA</span>
+        </div>
         <button
           className={styles.langBtn}
           onClick={() => setLang(lang === 'el' ? 'en' : 'el')}

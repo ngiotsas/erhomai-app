@@ -108,3 +108,39 @@ export async function fetchRoutesForStop(stopCode) {
     routeNameEn: route.RouteDescrEng ?? null,
   }));
 }
+
+export async function fetchAllLines() {
+  const raw = await callOasa('webGetLinesWithMLInfo', []);
+  return asArray(raw).map((line) => ({
+    lineCode: String(line.line_code),
+    lineId: String(line.line_id),
+    lineName: line.line_descr,
+    lineNameEn: line.line_descr_eng ?? null,
+  }));
+}
+
+export async function fetchRoutesForLine(lineCode) {
+  const raw = await callOasa('webGetRoutes', [lineCode]);
+  return asArray(raw).map((route) => ({
+    routeCode: String(route.RouteCode),
+    routeName: route.RouteDescr,
+    routeNameEn: route.RouteDescrEng ?? null,
+  }));
+}
+
+export async function fetchRouteStops(routeCode) {
+  const raw = await callOasa('webGetRoutesDetailsAndStops', [routeCode]);
+  if (!raw || !raw.stops) return [];
+  return asArray(raw.stops)
+    .map((stop) => ({
+      code: String(stop.StopCode),
+      name: stop.StopDescr,
+      nameEn: stop.StopDescrEng ?? null,
+      street: stop.StopStreet ?? null,
+      streetEn: stop.StopStreetEng ?? null,
+      lat: Number(stop.StopLat),
+      lng: Number(stop.StopLng),
+      order: Number(stop.RouteStopOrder),
+    }))
+    .filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
+}

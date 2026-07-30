@@ -65,6 +65,23 @@ export const translations = {
     dataCollectionMore: 'Αναλυτικά στην πολιτική απορρήτου',
     showAllStops: 'Προβολή όλων των στάσεων',
     showNearestStops: 'Πλησιέστερες στάσεις',
+    searchView: 'Αναζήτηση',
+    searchByLine: 'Γραμμή',
+    searchByStop: 'Στάση',
+    searchLineLabel: 'Αναζήτηση γραμμής',
+    searchLinePlaceholder: 'Πληκτρολόγησε αριθμό γραμμής…',
+    searchLineHint: 'Π.χ. 021, 550, Α7',
+    noLineFound: 'Δεν βρέθηκε γραμμή.',
+    lineStopsFor: (id) => `Στάσεις για τη γραμμή ${id}`,
+    routeDirection: 'Κατεύθυνση',
+    stopsCount: (n) => {
+      if (n === 1) return '1 στάση';
+      return `${n} στάσεις`;
+    },
+    searchStopLabel: 'Αναζήτηση στάσης',
+    searchStopPlaceholder: 'Πληκτρολόγησε όνομα στάσης…',
+    noStopFound: 'Δεν βρέθηκε στάση.',
+    indexBuilding: 'Χτίζουμε το ευρετήριο στάσεων — δοκίμασε ξανά σε λίγο.',
   },
   en: {
     appTitle: 'Erhomai',
@@ -132,5 +149,22 @@ export const translations = {
     dataCollectionMore: 'Read our full privacy policy',
     showAllStops: 'Show all stops',
     showNearestStops: 'Nearest stops',
+    searchView: 'Search',
+    searchByLine: 'Line',
+    searchByStop: 'Stop',
+    searchLineLabel: 'Search bus line',
+    searchLinePlaceholder: 'Type a bus number…',
+    searchLineHint: 'e.g. 021, 550, A7',
+    noLineFound: 'No line found.',
+    lineStopsFor: (id) => `Stops for line ${id}`,
+    routeDirection: 'Direction',
+    stopsCount: (n) => {
+      if (n === 1) return '1 stop';
+      return `${n} stops`;
+    },
+    searchStopLabel: 'Search stop',
+    searchStopPlaceholder: 'Type a stop name…',
+    noStopFound: 'No stop found.',
+    indexBuilding: 'Building the stop index — try again shortly.',
   },
 };

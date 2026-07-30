@@ -11,16 +11,15 @@ import AppShell from './components/AppShell/AppShell.jsx';
 import styles from './App.module.css';
 
 const MapView = lazy(() => import('./components/MapView/MapView.jsx'));
+const SearchView = lazy(() => import('./components/SearchView/SearchView.jsx'));
 
 export default function App() {
   const { t } = useTranslation();
   const { coords, state: geoState, permissionState, retry } = useGeolocation();
-  const [showAllStops, setShowAllStops] = useState(false);
-  const stopsLimit = showAllStops ? 20 : 5;
   const { stops, state: stopsState } = useStops(
     coords?.lat,
     coords?.lng,
-    stopsLimit,
+    20,
   );
   const [selectedStop, setSelectedStop] = useState(null);
   const [view, setView] = useState('list');
@@ -76,67 +75,80 @@ export default function App() {
         <StatusMessage type="status" message={t.outsideServiceArea} />
       )}
 
-      {stopsState === STOPS_STATES.READY && stops.length === 0 && (
+      {stopsState === STOPS_STATES.READY && stops.length === 0 && view !== 'search' && (
         <StatusMessage type="status" message={t.noStopsFound} />
       )}
 
-      {stopsState === STOPS_STATES.READY && stops.length > 0 && (
-        <>
-          <div className={styles.toolbar}>
-            <div className={styles.toggle} role="group" aria-label={t.viewLabel}>
-              <button
-                className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
-                onClick={() => { setView('list'); setSelectedStop(null); }}
-                aria-pressed={view === 'list'}
-              >
-                {t.listView}
-              </button>
-              <button
-                className={`${styles.toggleBtn} ${view === 'map' ? styles.toggleActive : ''}`}
-                onClick={() => setView('map')}
-                aria-pressed={view === 'map'}
-              >
-                {t.mapView}
-              </button>
-            </div>
+      {stopsState === STOPS_STATES.READY && (
+        <div className={styles.toolbar}>
+          <div className={styles.toggle} role="group" aria-label={t.viewLabel}>
             <button
-              className={styles.allStopsBtn}
-              onClick={() => { setShowAllStops((prev) => !prev); setSelectedStop(null); }}
+              className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
+              onClick={() => { setView('list'); setSelectedStop(null); }}
+              aria-pressed={view === 'list'}
+              disabled={stops.length === 0}
             >
-              {showAllStops ? t.showNearestStops : t.showAllStops}
+              {t.listView}
+            </button>
+            <button
+              className={`${styles.toggleBtn} ${view === 'map' ? styles.toggleActive : ''}`}
+              onClick={() => setView('map')}
+              aria-pressed={view === 'map'}
+              disabled={stops.length === 0}
+            >
+              {t.mapView}
+            </button>
+            <button
+              className={`${styles.toggleBtn} ${view === 'search' ? styles.toggleActive : ''}`}
+              onClick={() => setView('search')}
+              aria-pressed={view === 'search'}
+            >
+              {t.searchView}
             </button>
           </div>
+        </div>
+      )}
 
-          {view === 'list' && (
-            <section className={styles.list} aria-label={t.nearbyStops}>
-              {stops.map((stop) => (
-                <StopCard
-                  key={stop.code}
-                  stop={stop}
-                  isSelected={selectedStop === stop.code}
-                  onSelect={handleStopSelect}
-                  arrivals={arrivals}
-                  fetchedAt={fetchedAt}
-                  arrivalsState={arrivalsState}
-                />
-              ))}
-            </section>
-          )}
+      {view === 'search' && (
+        <Suspense fallback={<StatusMessage type="status" message={t.searchingStops} />}>
+          <SearchView
+            onStopSelect={handleStopSelect}
+            selectedStop={selectedStop}
+            arrivals={arrivals}
+            fetchedAt={fetchedAt}
+            arrivalsState={arrivalsState}
+          />
+        </Suspense>
+      )}
 
-          {view === 'map' && (
-            <Suspense fallback={<StatusMessage type="status" message={t.searchingStops} />}>
-              <MapView
-                coords={coords}
-                stops={stops}
-                selectedStop={selectedStop}
-                onStopSelect={handleStopSelect}
-                arrivals={arrivals}
-                fetchedAt={fetchedAt}
-                arrivalsState={arrivalsState}
-              />
-            </Suspense>
-          )}
-        </>
+      {view === 'list' && stops && stops.length > 0 && (
+        <section className={styles.list} aria-label={t.nearbyStops}>
+          {stops.map((stop) => (
+            <StopCard
+              key={stop.code}
+              stop={stop}
+              isSelected={selectedStop === stop.code}
+              onSelect={handleStopSelect}
+              arrivals={arrivals}
+              fetchedAt={fetchedAt}
+              arrivalsState={arrivalsState}
+            />
+          ))}
+        </section>
+      )}
+
+      {view === 'map' && stops && stops.length > 0 && (
+        <Suspense fallback={<StatusMessage type="status" message={t.searchingStops} />}>
+          <MapView
+            coords={coords}
+            stops={stops}
+            selectedStop={selectedStop}
+            onStopSelect={handleStopSelect}
+            arrivals={arrivals}
+            fetchedAt={fetchedAt}
+            arrivalsState={arrivalsState}
+          />
+        </Suspense>
       )}
 
       <section className={styles.dataCollection}>
