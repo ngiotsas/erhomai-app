@@ -1,6 +1,14 @@
-# Static JS/CSS assets — immutable, 1-year cache
-/assets/*
+# Vite-hashed JS/CSS assets — immutable, 1-year cache
+/assets/index-*
   Cache-Control: public, max-age=31536000, immutable
+/assets/MapView-*
+  Cache-Control: public, max-age=31536000, immutable
+/assets/SearchView-*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Non-hashed assets (workers, etc.) — shorter cache, not immutable
+/assets/maplibre-*
+  Cache-Control: public, max-age=604800
 
 # SVG icon
 /icon.svg
