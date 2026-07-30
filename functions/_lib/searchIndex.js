@@ -74,22 +74,19 @@ async function doBuildIndex() {
   return stopsByCode.size;
 }
 
-// Load index lazily; if neither in-memory nor KV has it, start building in background.
+// Load index lazily; if neither in-memory nor KV has it, build it.
 export async function ensureSearchIndex(env) {
   if (isIndexValid()) return;
   const loaded = await loadFromKV(env);
   if (loaded) return;
 
-  env.ctx?.waitUntil?.(
-    doBuildIndex()
-      .then((size) => {
-        console.log(`[searchIndex] built with ${size} stops`);
-        return saveToKV(env);
-      })
-      .catch((err) => {
-        console.error('[searchIndex] build failed:', err.message);
-      }),
-  );
+  try {
+    const size = await doBuildIndex();
+    console.log(`[searchIndex] built with ${size} stops`);
+    await saveToKV(env);
+  } catch (err) {
+    console.error('[searchIndex] build failed:', err.message);
+  }
 }
 
 // Full rebuild + save to KV (called by cron / manual trigger).
