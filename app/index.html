@@ -8,35 +8,94 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <meta name="robots" content="index, follow" />
-    <meta name="description" content="Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση. Βρες πότε έρχεται το επόμενο λεωφορείο." />
+    <meta name="description" content="Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση. Αναζήτηση δρομολογίων, χάρτης στάσεων, πρόγραμμα αφίξεων λεωφορείων στην Αθήνα." />
+    <meta name="keywords" content="ΟΑΣΑ, λεωφορεία, αφίξεις, στάσεις, Αθήνα, δρομολόγια, πραγματικός χρόνος, bus, arrivals, Athens, telematics" />
+    <meta name="author" content="Έρχομαι" />
     <link rel="canonical" href="https://erhomai.gr" />
 
-    <meta property="og:title" content="Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ" />
-    <meta property="og:description" content="Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση." />
+    <!-- hreflang -->
+    <link rel="alternate" hreflang="el" href="https://erhomai.gr" />
+    <link rel="alternate" hreflang="en" href="https://erhomai.gr?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://erhomai.gr" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο" />
+    <meta property="og:description" content="Βρες την πλησιέστερη στάση, δες το χάρτη, αναζήτησε δρομολόγια και δες σε πόσα λεπτά έρχεται το λεωφορείο σου." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://erhomai.gr" />
     <meta property="og:locale" content="el_GR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:site_name" content="Έρχομαι" />
+    <meta property="og:image" content="https://erhomai.gr/icon.svg" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:type" content="image/svg+xml" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ" />
-    <meta name="twitter:description" content="Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση." />
+    <meta name="twitter:description" content="Βρες την πλησιέστερη στάση, δες το χάρτη και δες σε πόσα λεπτά έρχεται το λεωφορείο σου." />
+    <meta name="twitter:image" content="https://erhomai.gr/icon.svg" />
 
+    <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Έρχομαι",
-      "description": "Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση",
+      "alternateName": "Erhomai",
+      "description": "Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο για την πλησιέστερη στάση. Αναζήτηση δρομολογίων, χάρτης στάσεων και πρόγραμμα αφίξεων στην Αθήνα.",
       "url": "https://erhomai.gr",
       "applicationCategory": "TravelApplication",
       "operatingSystem": "All",
-      "inLanguage": "el"
+      "inLanguage": ["el", "en"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Έρχομαι",
+        "url": "https://erhomai.gr",
+        "email": "info@erhomai.gr",
+        "foundingLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Αθήνα",
+            "addressCountry": "GR"
+          }
+        }
+      },
+      "browserRequirements": "Requires geolocation"
     }
     </script>
 
-    <title>Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ</title>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Αρχική",
+        "item": "https://erhomai.gr"
+      }]
+    }
+    </script>
+
+    <title>Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο</title>
   </head>
   <body>
+    <!-- SEO fallback for non-JS crawlers -->
+    <noscript>
+      <div style="max-width:480px;margin:40px auto;padding:16px;font-family:system-ui,sans-serif;line-height:1.6">
+        <h1>Έρχομαι — Αφίξεις λεωφορείων ΟΑΣΑ</h1>
+        <p>Πραγματικές αφίξεις λεωφορείων ΟΑΣΑ για την πλησιέστερη στάση. Χάρτης, αναζήτηση γραμμών και στάσεων, ζωντανές ενημερώσεις αφίξεων.</p>
+        <p>Η εφαρμογή απαιτεί JavaScript. Παρακαλώ ενεργοποιήστε το JavaScript στο πρόγραμμα περιήγησής σας.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script defer src="https://cdn.userway.org/widget.js" data-account="wCE0WdxbjC"></script>

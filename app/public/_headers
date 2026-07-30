@@ -1,0 +1,19 @@
+# Static JS/CSS assets — immutable, 1-year cache
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# SVG icon
+/icon.svg
+  Cache-Control: public, max-age=604800
+
+# robots.txt
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+# site.webmanifest
+/site.webmanifest
+  Cache-Control: public, max-age=604800
+
+# HTML — never cache (SPA entry point)
+/index.html
+  Cache-Control: no-cache

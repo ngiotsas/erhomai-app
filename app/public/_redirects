@@ -1,0 +1,2 @@
+# Redirect www → apex
+https://www.erhomai.gr/* https://erhomai.gr/:splat 301
