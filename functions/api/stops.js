@@ -3,9 +3,6 @@ import {
   distanceInMeters,
 } from '../_lib/geo.js';
 import { fetchClosestStops } from '../_lib/oasaClient.js';
-import { cached } from '../_lib/cache.js';
-
-const STOPS_TTL_MS = 5 * 60 * 1000;
 
 function parseStopLimit(rawLimit) {
   const DEFAULT_STOP_LIMIT = 5;
@@ -36,11 +33,9 @@ export async function onRequestGet(context) {
   }
 
   const limit = parseStopLimit(searchParams.get('limit'));
-  const cacheKey = `stops:${lat.toFixed(4)}:${lng.toFixed(4)}`;
 
   try {
-    const stops = await cached(cacheKey, STOPS_TTL_MS, () => fetchClosestStops(lat, lng));
-
+    const stops = await fetchClosestStops(lat, lng);
     const nearest = stops
       .map((stop) => ({
         ...stop,
@@ -53,7 +48,7 @@ export async function onRequestGet(context) {
       JSON.stringify({ origin: { lat, lng }, stops: nearest }),
       { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=60' } },
     );
-  } catch {
+  } catch (err) {
     return new Response(
       JSON.stringify({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' }),
       { status: 502, headers: { 'Content-Type': 'application/json' } },

@@ -4,11 +4,23 @@ import { cached } from '../../../_lib/cache.js';
 const LINES_TTL_MS = 12 * 60 * 60 * 1000;
 const ROUTES_TTL_MS = 12 * 60 * 60 * 1000;
 
+const GREEK_TO_LATIN = {
+  'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'h','ι':'i',
+  'κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r',
+  'σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'x','ψ':'ps','ω':'o',
+  'ά':'a','έ':'e','ή':'h','ί':'i','ό':'o','ύ':'y','ώ':'o',
+  'ϊ':'i','ϋ':'y',
+};
+
+function normalize(s) {
+  return s.toLowerCase().split('').map((c) => GREEK_TO_LATIN[c] || c).join('');
+}
+
 export async function onRequestGet(context) {
   try {
     const lineId = context.params.lineId;
     const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
-    const matching = lines.filter((l) => l.lineId === lineId);
+    const matching = lines.filter((l) => normalize(l.lineId) === normalize(lineId));
 
     if (matching.length === 0) {
       return new Response(

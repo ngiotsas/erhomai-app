@@ -6,6 +6,17 @@ import StatusMessage from '../StatusMessage/StatusMessage.jsx';
 import SecondsAgo from '../SecondsAgo/SecondsAgo.jsx';
 import { FETCH_STATES as ARRIVALS_STATES } from '../../hooks/useArrivals.js';
 
+// Normalize Greek characters to Latin equivalents for URL-safe line IDs
+const GREEK_TO_LATIN = {
+  'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'h','ι':'i',
+  'κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r',
+  'σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'x','ψ':'ps','ω':'o',
+};
+function normalizeLineId(id) {
+  if (!id) return id;
+  return [...id].map(c => GREEK_TO_LATIN[c.toLowerCase()] || c).join('');
+}
+
 function useLineSearch() {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -141,7 +152,8 @@ export default function SearchView({
   const { data: lineStopsData, loading: lineStopsLoading, error: lineStopsError } = useLineStops(selectedLineId);
 
   const handleLineSelect = useCallback((lineId) => {
-    setSelectedLineId(lineId);
+    const normalized = normalizeLineId(lineId);
+    setSelectedLineId(normalized);
     lineSearch.setQuery(lineId);
   }, [lineSearch]);
 
