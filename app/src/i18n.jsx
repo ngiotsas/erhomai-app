@@ -8,6 +8,12 @@ const LANG_KEY = 'erhomai-lang';
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
     try {
+      // URL query param takes priority (for hreflang / sitemap alternates)
+      const urlParam = new URL(window.location.href).searchParams.get('lang');
+      if (urlParam === 'el' || urlParam === 'en') {
+        try { localStorage.setItem(LANG_KEY, urlParam); } catch { /* ignored */ }
+        return urlParam;
+      }
       const stored = localStorage.getItem(LANG_KEY);
       if (stored === 'el' || stored === 'en') return stored;
     } catch { /* localStorage may be unavailable */ }
