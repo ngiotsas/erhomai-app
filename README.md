@@ -309,7 +309,7 @@ Returns up to 20 matching stops with their coordinates. The search index is buil
 - **Search** — Search bus lines by number (e.g., "X95", "021") or stop by name
 - **Line stops** — View all stops along a bus line grouped by direction
 - **View toggle** — Λίστα / Χάρτης / Αναζήτηση segmented button
-- **Greek / English** — i18n with automatic browser language detection, localStorage persistence. Stop names, line names, and directions use OASA's English translations when available, otherwise transliterate Greek to Latin.
+- **Greek / English** — i18n with automatic browser language detection, `?lang=el` / `?lang=en` URL parameters, localStorage persistence. Stop names, line names, and directions use OASA's English translations when available, otherwise transliterate Greek to Latin.
 - **Auto-refresh** — Arrivals poll every 25 seconds with a "X seconds ago" freshness indicator
 - **Accessibility** — Semantic HTML (`<main>`, `<article>`, `<section>`), ARIA labels, keyboard navigation, `aria-live` regions, `focus-visible` outlines, 44px touch targets
 - **Mobile-first responsive** — Dynamic viewport units (`dvh`), safe area padding, responsive map height
