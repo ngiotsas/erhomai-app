@@ -49,14 +49,6 @@ export default function App() {
     return <LegalNotice onBack={hidePrivacyPage} />;
   }
 
-  if (geoState === GEOLOCATION_STATES.PENDING) {
-    return (
-      <AppShell onShowPrivacy={showPrivacyPage}>
-        <LocationGate state={geoState} onShowPrivacy={showPrivacyPage} />
-      </AppShell>
-    );
-  }
-
   return (
     <AppShell wide={view === 'map'} onShowPrivacy={showPrivacyPage}>
       <div className={styles.toolbar}>

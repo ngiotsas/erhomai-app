@@ -82,6 +82,8 @@ export const translations = {
     searchStopPlaceholder: 'Πληκτρολόγησε όνομα στάσης…',
     noStopFound: 'Δεν βρέθηκε στάση.',
     indexBuilding: 'Χτίζουμε το ευρετήριο στάσεων — δοκίμασε ξανά σε λίγο.',
+    indexStale: 'Το ευρετήριο στάσεων είναι παλιό — τα αποτελέσματα μπορεί να μην είναι πλήρη.',
+    indexUnavailable: 'Το ευρετήριο στάσεων δεν είναι διαθέσιμο αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο.',
   },
   en: {
     appTitle: 'Erhomai',
@@ -166,5 +168,7 @@ export const translations = {
     searchStopPlaceholder: 'Type a stop name…',
     noStopFound: 'No stop found.',
     indexBuilding: 'Building the stop index — try again shortly.',
+    indexStale: 'The stop index is out of date — results may be incomplete.',
+    indexUnavailable: 'The stop index is currently unavailable. Please try again shortly.',
   },
 };

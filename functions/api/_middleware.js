@@ -1,6 +1,16 @@
 const rateLimitMap = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 60;
+const RATE_MAX_SEARCH = 120;
+
+// Search endpoints are cheap (served from cache/in-memory index) and fire on
+// every keystroke, so they get their own budget. This stops heavy searching
+// from exhausting the budget that the core stops/arrivals calls need.
+function poolFor(url) {
+  const path = new URL(url).pathname;
+  if (path.startsWith('/api/lines') || path.startsWith('/api/search-stops')) return 'search';
+  return 'data';
+}
 
 const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -25,7 +35,9 @@ export async function onRequest(context) {
 
   // Rate limiting
   const ip = context.request.headers.get('CF-Connecting-IP') || '0.0.0.0';
-  const key = `rl:${ip}`;
+  const pool = poolFor(context.request.url);
+  const key = `rl:${pool}:${ip}`;
+  const max = pool === 'search' ? RATE_MAX_SEARCH : RATE_MAX;
 
   let entry = rateLimitMap.get(key);
   if (!entry) {
@@ -34,10 +46,10 @@ export async function onRequest(context) {
   }
 
   entry.count++;
-  if (entry.count > RATE_MAX) {
+  if (entry.count > max) {
     return applySecurityHeaders(new Response(
       JSON.stringify({ error: 'rate_limited', message: 'Πολλά requests. Δοκίμασε ξανά σε λίγο.' }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } },
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } },
     ));
   }
 

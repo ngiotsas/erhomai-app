@@ -123,11 +123,16 @@ export function createApiRouter() {
     });
   });
 
-  // GET /api/lines — όλες οι γραμμές
-  router.get('/lines', async (req, res) => {
+  // GET/POST /api/lines — όλες οι γραμμές
+  function linesQuery(req) {
+    if (req.method === 'POST') return (req.body?.q ?? '').toString().toLowerCase().trim();
+    return (req.query.q ?? '').toString().toLowerCase().trim();
+  }
+
+  const handleLines = async (req, res) => {
     try {
       const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
-      const q = (req.query.q ?? '').toString().toLowerCase().trim();
+      const q = linesQuery(req);
       let filtered = lines;
       if (q) {
         filtered = lines.filter(
@@ -139,7 +144,9 @@ export function createApiRouter() {
     } catch {
       res.status(502).json({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' });
     }
-  });
+  };
+  router.get('/lines', handleLines);
+  router.post('/lines', handleLines);
 
   // GET /api/lines/:lineId/stops — στάσεις για μία γραμμή
   router.get('/lines/:lineId/stops', async (req, res) => {
@@ -192,9 +199,14 @@ export function createApiRouter() {
     }
   });
 
-  // GET /api/search-stops?q=... — αναζήτηση στάσεων με όνομα
-  router.get('/search-stops', (req, res) => {
-    const q = (req.query.q ?? '').trim();
+  // GET/POST /api/search-stops — αναζήτηση στάσεων με όνομα
+  function searchStopsQuery(req) {
+    if (req.method === 'POST') return (req.body?.q ?? '').trim();
+    return (req.query.q ?? '').trim();
+  }
+
+  const handleSearchStops = (req, res) => {
+    const q = searchStopsQuery(req);
     if (!q || q.length < 2) {
       res.json({ stops: [], index: indexStatus() });
       return;
@@ -202,7 +214,9 @@ export function createApiRouter() {
     const stops = searchStops(q);
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.json({ stops, index: indexStatus() });
-  });
+  };
+  router.get('/search-stops', handleSearchStops);
+  router.post('/search-stops', handleSearchStops);
 
   return router;
 }

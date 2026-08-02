@@ -159,13 +159,13 @@ Lists the buses approaching a stop.
 
 Behind one call, the server makes two upstream requests in parallel. `getStopArrivals` returns route codes and minutes, `webRoutesForStop` returns the mapping from route codes to line names (with English translations when available), and this endpoint joins them.
 
-### `GET /api/lines`
+### `GET|POST /api/lines`
 
 Search all OASA bus lines.
 
 | Parameter | Required | Description |
 |---|---|---|
-| `q` | no | Search term. Matches line ID, Greek name, or English name |
+| `q` | no | Search term. Matches line ID, Greek name, or English name. Sent as a query string on GET or as JSON body `{ "q": "..." }` on POST |
 
 ```json
 [
@@ -178,7 +178,7 @@ Search all OASA bus lines.
 ]
 ```
 
-Searches are case-insensitive and normalize Greek ↔ Latin lookalike characters (X ↔ Χ, B ↔ Β, etc.).
+Searches are case-insensitive and normalize Greek ↔ Latin lookalike characters (X ↔ Χ, B ↔ Β, etc.). The app uses POST so search terms don't end up in access logs.
 
 ### `GET /api/lines/:lineId/stops`
 
@@ -205,15 +205,15 @@ Returns all stops for a bus line, grouped by route direction.
 }
 ```
 
-### `GET /api/search-stops`
+### `GET|POST /api/search-stops`
 
 Search stops by name (Greek, English, or street).
 
 | Parameter | Required | Description |
 |---|---|---|
-| `q` | yes | Search term, minimum 2 characters |
+| `q` | yes | Search term, minimum 2 characters. Sent as a query string on GET or as JSON body `{ "q": "..." }` on POST |
 
-Returns up to 20 matching stops with their coordinates. The search index is built from all OASA routes and cached in KV for 12 hours.
+Returns up to 20 matching stops with their coordinates. The search index is built from all OASA routes and cached in KV for 12 hours; responses also include an `index` object with `ready`, `building`, `stale`, and `failed` flags so clients can show the right status message. The app uses POST so search terms don't end up in access logs.
 
 ### `GET /api/health`
 

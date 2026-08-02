@@ -37,7 +37,10 @@ function useLineSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const res = await fetch(`/api/lines?q=${encodeURIComponent(q.trim())}`, {
+        const res = await fetch('/api/lines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: q.trim() }),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -79,7 +82,10 @@ function useStopSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const res = await fetch(`/api/search-stops?q=${encodeURIComponent(q.trim())}`, {
+        const res = await fetch('/api/search-stops', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: q.trim() }),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -325,6 +331,14 @@ export default function SearchView({
 
           {stopSearch.indexInfo && !stopSearch.indexInfo.ready && stopSearch.indexInfo.building && (
             <StatusMessage type="status" message={t.indexBuilding} />
+          )}
+
+          {stopSearch.indexInfo && !stopSearch.indexInfo.ready && !stopSearch.indexInfo.building && stopSearch.indexInfo.stale && (
+            <StatusMessage type="status" message={t.indexStale} />
+          )}
+
+          {stopSearch.indexInfo && !stopSearch.indexInfo.ready && !stopSearch.indexInfo.building && stopSearch.indexInfo.failed && (
+            <StatusMessage type="error" message={t.indexUnavailable} />
           )}
 
           {stopSearch.loading && <StatusMessage type="status" message={t.searchingStops} />}
