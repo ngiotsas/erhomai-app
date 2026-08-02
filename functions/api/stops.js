@@ -13,10 +13,27 @@ function parseStopLimit(rawLimit) {
   return Math.min(limit, MAX_STOP_LIMIT);
 }
 
-export async function onRequestGet(context) {
+// Coordinates are sent in the request body (POST) so they never end up in
+// URLs/access logs. GET is kept for backward compatibility.
+async function readParams(context) {
   const { searchParams } = new URL(context.request.url);
-  const lat = Number(searchParams.get('lat'));
-  const lng = Number(searchParams.get('lng'));
+  if (context.request.method === 'POST') {
+    const body = await context.request.json().catch(() => ({}));
+    return {
+      lat: Number(body.lat),
+      lng: Number(body.lng),
+      limit: body.limit,
+    };
+  }
+  return {
+    lat: Number(searchParams.get('lat')),
+    lng: Number(searchParams.get('lng')),
+    limit: searchParams.get('limit'),
+  };
+}
+
+async function handleStops(context) {
+  const { lat, lng, limit: rawLimit } = await readParams(context);
 
   if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
     return new Response(
@@ -32,7 +49,7 @@ export async function onRequestGet(context) {
     );
   }
 
-  const limit = parseStopLimit(searchParams.get('limit'));
+  const limit = parseStopLimit(rawLimit);
 
   try {
     const stops = await fetchClosestStops(lat, lng);
@@ -54,4 +71,12 @@ export async function onRequestGet(context) {
       { status: 502, headers: { 'Content-Type': 'application/json' } },
     );
   }
+}
+
+export async function onRequestGet(context) {
+  return handleStops(context);
+}
+
+export async function onRequestPost(context) {
+  return handleStops(context);
 }

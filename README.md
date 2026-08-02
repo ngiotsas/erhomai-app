@@ -101,9 +101,9 @@ npm test
 
 All endpoints return JSON. Greek/Latin character normalization is applied to line IDs — typing "X95" finds "Χ95", "B5" finds "Β5".
 
-### `GET /api/stops`
+### `POST /api/stops`
 
-Finds the stops nearest to a point.
+Finds the stops nearest to a point. Coordinates are sent in the JSON request body so they never appear in URLs or access logs. A `GET` with query parameters (`lat`, `lng`, `limit`) is still accepted for backward compatibility.
 
 | Parameter | Required | Description |
 |---|---|---|

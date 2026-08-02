@@ -2,34 +2,46 @@ const rateLimitMap = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 60;
 
+const SECURITY_HEADERS = {
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Access-Control-Allow-Origin': '*',
+};
+
+function applySecurityHeaders(response) {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(name, value);
+  }
+  return response;
+}
+
 export async function onRequest(context) {
+  // Prune expired entries so an IP is never retained beyond the rate-limit window.
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now >= entry.reset) rateLimitMap.delete(key);
+  }
+
   // Rate limiting
   const ip = context.request.headers.get('CF-Connecting-IP') || '0.0.0.0';
   const key = `rl:${ip}`;
-  const now = Date.now();
 
   let entry = rateLimitMap.get(key);
-  if (!entry || now - entry.reset >= RATE_WINDOW_MS) {
+  if (!entry) {
     entry = { count: 0, reset: now + RATE_WINDOW_MS };
     rateLimitMap.set(key, entry);
   }
 
   entry.count++;
   if (entry.count > RATE_MAX) {
-    return new Response(
+    return applySecurityHeaders(new Response(
       JSON.stringify({ error: 'rate_limited', message: 'Πολλά requests. Δοκίμασε ξανά σε λίγο.' }),
       { status: 429, headers: { 'Content-Type': 'application/json' } },
-    );
+    ));
   }
 
-  const response = await context.next();
-
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Access-Control-Allow-Origin', '*');
-
-  return response;
+  return applySecurityHeaders(await context.next());
 }
 
 export async function onRequestOptions() {
@@ -37,7 +49,7 @@ export async function onRequestOptions() {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400',
     },

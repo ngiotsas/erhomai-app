@@ -1,3 +1,9 @@
+# Security headers — all routes
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.userway.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://cdn.userway.org; font-src 'self' data: https://cdn.userway.org; connect-src 'self' https://tiles.openfreemap.org https://api.userway.org https://cdn.userway.org; worker-src blob:; frame-src 'self' https://*.userway.org; object-src 'none'; base-uri 'self'; form-action 'self'
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(self)
+
 # Vite-hashed JS/CSS assets — immutable, 1-year cache
 /assets/index-*
   Cache-Control: public, max-age=31536000, immutable
@@ -25,3 +31,6 @@
 # HTML — never cache (SPA entry point)
 /index.html
   Cache-Control: no-cache
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.userway.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://cdn.userway.org; font-src 'self' data: https://cdn.userway.org; connect-src 'self' https://tiles.openfreemap.org https://api.userway.org https://cdn.userway.org; worker-src blob:; frame-src 'self' https://*.userway.org; object-src 'none'; base-uri 'self'; form-action 'self'
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(self)

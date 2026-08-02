@@ -18,13 +18,15 @@ const app = express();
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.userway.org; frame-src 'self' https://*.userway.org; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org https://api.userway.org; worker-src blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdn.userway.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://cdn.userway.org; font-src 'self' data: https://cdn.userway.org; connect-src 'self' https://tiles.openfreemap.org https://api.userway.org https://cdn.userway.org; worker-src blob:; frame-src 'self' https://*.userway.org; object-src 'none'; base-uri 'self'; form-action 'self'");
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'geolocation=(self)');
   next();
 });
+
+app.use(express.json());
 
 const TRUST_PROXY = Number.parseInt(process.env.TRUST_PROXY ?? '0', 10);
 if (Number.isFinite(TRUST_PROXY) && TRUST_PROXY > 0) {

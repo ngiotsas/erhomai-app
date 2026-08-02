@@ -19,13 +19,22 @@ function parseStopLimit(rawLimit) {
   return Math.min(limit, MAX_STOP_LIMIT);
 }
 
+// Coordinates are read from the POST body so they never end up in URLs/access
+// logs. GET query params are kept for backward compatibility.
+function stopsParams(req) {
+  if (req.method === 'POST') {
+    const body = req.body ?? {};
+    return { lat: Number(body.lat), lng: Number(body.lng), limit: body.limit };
+  }
+  return { lat: Number(req.query.lat), lng: Number(req.query.lng), limit: req.query.limit };
+}
+
 export function createApiRouter() {
   const router = Router();
 
-  // GET /api/stops?lat=37.98&lng=23.73&limit=5
-  router.get('/stops', async (req, res) => {
-    const lat = Number(req.query.lat);
-    const lng = Number(req.query.lng);
+  // GET /api/stops?lat=37.98&lng=23.73&limit=5 | POST /api/stops {lat, lng, limit}
+  async function handleStops(req, res) {
+    const { lat, lng, limit: rawLimit } = stopsParams(req);
 
     if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
       res.status(400).json({
@@ -43,7 +52,7 @@ export function createApiRouter() {
       return;
     }
 
-    const limit = parseStopLimit(req.query.limit);
+    const limit = parseStopLimit(rawLimit);
     // Στρογγυλοποιούμε στο cache key ώστε δύο χρήστες 10 μέτρα μακριά
     // να μοιράζονται το ίδιο αποτέλεσμα.
     const cacheKey = `stops:${lat.toFixed(4)}:${lng.toFixed(4)}`;
@@ -59,7 +68,10 @@ export function createApiRouter() {
 
     res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({ origin: { lat, lng }, stops: nearest });
-  });
+  }
+
+  router.get('/stops', handleStops);
+  router.post('/stops', handleStops);
 
   // GET /api/arrivals?stop=400075
   router.get('/arrivals', async (req, res) => {

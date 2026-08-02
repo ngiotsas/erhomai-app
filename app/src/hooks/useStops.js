@@ -19,7 +19,10 @@ export function useStops(lat, lng, limit = 5) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch(`/api/stops?lat=${lat}&lng=${lng}&limit=${limit}`, {
+      const res = await fetch('/api/stops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, limit }),
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
       });
       if (!res.ok) {
