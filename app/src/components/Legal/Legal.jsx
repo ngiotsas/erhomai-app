@@ -47,6 +47,7 @@ export default function LegalNotice({ onBack }) {
           <li>{t.privacyThird1}</li>
           <li>{t.privacyThird2}</li>
           <li>{t.privacyThird3}</li>
+          <li>{t.privacyThird4}</li>
         </ul>
       </section>
 
@@ -61,7 +62,7 @@ export default function LegalNotice({ onBack }) {
       </section>
 
       <footer className={styles.footer}>
-        {t.privacyLastUpdated} 2026-07-28
+        {t.privacyLastUpdated} 2026-08-03
       </footer>
     </main>
   );
