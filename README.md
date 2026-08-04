@@ -313,6 +313,8 @@ Returns up to 20 matching stops with their coordinates. The search index is buil
 - **Auto-refresh** — Arrivals poll every 25 seconds with a "X seconds ago" freshness indicator
 - **Accessibility** — Semantic HTML (`<main>`, `<article>`, `<section>`), ARIA labels, keyboard navigation, `aria-live` regions, `focus-visible` outlines, 44px touch targets
 - **Mobile-first responsive** — Dynamic viewport units (`dvh`), safe area padding, responsive map height
+- **Installable PWA** — Web app manifest (`site.webmanifest`) with PNG + maskable icons, service worker (`sw.js`) for offline app-shell + network-first arrivals. Installable via "Add to Home Screen" on Android/iOS/desktop.
+- **Android app** — Trusted Web Activity (TWA) config in `twa/` for wrapping the PWA in a Play Store app. See `twa/README.md`.
 - **SEO** — Open Graph, Twitter Cards (`summary` + image), JSON-LD (`WebApplication` + `Organization` + `BreadcrumbList`), hreflang (`el`, `en`, `x-default`), canonical URL, dynamic sitemap.xml, noscript fallback, `_headers` for asset caching, `_redirects` for www→apex
 
 ## Caching

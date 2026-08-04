@@ -1,10 +1,35 @@
 {
+  "id": "/",
   "name": "Έρχομαι",
   "short_name": "Έρχομαι",
   "description": "Αφίξεις λεωφορείων ΟΑΣΑ σε πραγματικό χρόνο",
+  "lang": "el",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "icons": []
+  "categories": ["travel", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

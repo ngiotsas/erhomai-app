@@ -20,6 +20,14 @@
 /icon.svg
   Cache-Control: public, max-age=604800
 
+# Service worker — never cache, so new versions activate promptly
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# PWA icons — 1-week cache
+/icons/*
+  Cache-Control: public, max-age=604800
+
 # robots.txt
 /robots.txt
   Cache-Control: public, max-age=86400
@@ -27,6 +35,7 @@
 # site.webmanifest
 /site.webmanifest
   Cache-Control: public, max-age=604800
+  Access-Control-Allow-Origin: *
 
 # HTML — never cache (SPA entry point)
 /index.html
