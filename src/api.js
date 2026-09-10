@@ -19,6 +19,28 @@ function parseStopLimit(rawLimit) {
   return Math.min(limit, MAX_STOP_LIMIT);
 }
 
+// Normalize Latin↔Greek lookalikes so "X95" matches "Χ95", "B5" matches "Β5".
+// Must stay in sync with functions/api/lines.js and functions/api/lines/[lineId]/stops.js.
+const GREEK_TO_LATIN = {
+  'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'h', 'ι': 'i',
+  'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'r',
+  'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'o',
+  'ά': 'a', 'έ': 'e', 'ή': 'h', 'ί': 'i', 'ό': 'o', 'ύ': 'y', 'ώ': 'o',
+  'ϊ': 'i', 'ϋ': 'y',
+};
+
+function normalizeLineText(s) {
+  return s.toLowerCase().split('').map((c) => GREEK_TO_LATIN[c] || c).join('');
+}
+
+function matchesLineQuery(line, q) {
+  const qNorm = normalizeLineText(q);
+  if (normalizeLineText(line.lineId).includes(qNorm)) return true;
+  if (normalizeLineText(line.lineName).includes(qNorm)) return true;
+  if (line.lineNameEn && line.lineNameEn.toLowerCase().includes(q.toLowerCase())) return true;
+  return false;
+}
+
 // Coordinates are read from the POST body so they never end up in URLs/access
 // logs. GET query params are kept for backward compatibility.
 function stopsParams(req) {
@@ -124,9 +146,11 @@ export function createApiRouter() {
   });
 
   // GET/POST /api/lines — όλες οι γραμμές
+  // Normalize Latin↔Greek lookalikes so "X95" matches "Χ95", "B5" matches "Β5".
+  // Must stay in sync with functions/api/lines.js.
   function linesQuery(req) {
-    if (req.method === 'POST') return (req.body?.q ?? '').toString().toLowerCase().trim();
-    return (req.query.q ?? '').toString().toLowerCase().trim();
+    if (req.method === 'POST') return (req.body?.q ?? '').toString().trim();
+    return (req.query.q ?? '').toString().trim();
   }
 
   const handleLines = async (req, res) => {
@@ -135,9 +159,7 @@ export function createApiRouter() {
       const q = linesQuery(req);
       let filtered = lines;
       if (q) {
-        filtered = lines.filter(
-          (l) => l.lineId.toLowerCase().includes(q) || l.lineName.toLowerCase().includes(q),
-        );
+        filtered = lines.filter((l) => matchesLineQuery(l, q));
       }
       res.setHeader('Cache-Control', 'public, max-age=300');
       res.json(filtered.slice(0, 50));
@@ -153,7 +175,7 @@ export function createApiRouter() {
     try {
       const { lineId } = req.params;
       const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
-      const matching = lines.filter((l) => l.lineId === lineId);
+      const matching = lines.filter((l) => normalizeLineText(l.lineId) === normalizeLineText(lineId));
 
       if (matching.length === 0) {
         res.status(404).json({ error: 'line_not_found', message: 'Η γραμμή δεν βρέθηκε.' });

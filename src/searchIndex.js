@@ -8,6 +8,7 @@ const CONCURRENCY = 5;
 let stopsByCode = new Map();
 let buildPromise = null;
 let indexBuiltAt = 0;
+let lastBuildFailedAt = 0;
 
 function isIndexValid() {
   return stopsByCode.size > 0 && (Date.now() - indexBuiltAt) < INDEX_TTL;
@@ -49,8 +50,10 @@ export function initSearchIndex() {
 
       stopsByCode = newStops;
       indexBuiltAt = Date.now();
+      lastBuildFailedAt = 0;
       console.log(`[searchIndex] built with ${stopsByCode.size} stops`);
     } catch (err) {
+      lastBuildFailedAt = Date.now();
       console.error('[searchIndex] build failed:', err.message);
     } finally {
       buildPromise = null;
@@ -76,9 +79,12 @@ export function searchStops(query) {
 }
 
 export function indexStatus() {
+  const age = indexBuiltAt ? Date.now() - indexBuiltAt : null;
   return {
     ready: isIndexValid(),
     building: !!buildPromise,
+    stale: stopsByCode.size > 0 && age !== null && age >= INDEX_TTL,
+    failed: stopsByCode.size === 0 && lastBuildFailedAt > 0,
     stops: stopsByCode.size,
   };
 }
