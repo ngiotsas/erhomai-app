@@ -8,26 +8,14 @@ You open the site, it asks for your location, it finds the stops around you, and
 
 ## Why a backend exists at all
 
-The OASA telematics API can be called straight from the browser: it answers
-on HTTPS (port 443) with `Access-Control-Allow-Origin: *`, so plain GET
-requests need no preflight. The frontend does exactly that by default
-(`app/src/oasaDirect.js`) — no backend, no tunnel, no VPS.
+The OASA telematics API answers on HTTPS (port 443) with
+`Access-Control-Allow-Origin: *`, so a browser *can* call it directly.
+A backend still sits in the middle, for two reasons:
 
-A backend still helps, for one reason: **Cloudflare's network cannot reach
-OASA at all.** `telematics.oasa.gr` (195.46.22.91) answers residential
-connections in ~0.5s but drops every packet from Cloudflare egress (all
-methods/paths/headers hang until timeout), so Pages Functions always 502.
-The upstream is also fragile and rate-limits aggressively, which is what
-caching is for.
+1. **A fragile upstream.** The OASA API goes down often and rate-limits aggressively. The backend caches answers so one busy stop does not generate hundreds of upstream requests.
+2. **Flaky reachability.** In September 2026 the telematics host (195.46.22.91) intermittently stopped answering Cloudflare egress while responding normally elsewhere, so Pages Functions 502'd for a stretch, then recovered on its own. If that recurs, the caller's network — not OASA's API logic — is the suspect.
 
-So there are two supported setups:
-
-- **Direct (default).** Browser → OASA over GET. Works from any static host.
-  Stop-name search uses a pregenerated `app/src/stopsIndex.json`
-  (`node app/scripts/gen-stops-index.mjs` refreshes it).
-- **Backend (`VITE_API_BASE`).** Browser → Express (`src/`) → OASA, for
-  caching and for networks where direct calls fail. The backend must run
-  where OASA is reachable (not on Cloudflare egress).
+The backend proxies the calls, caches them, and hands the frontend clean JSON with real line names instead of internal route codes.
 
 ## Deploying
 
@@ -81,20 +69,6 @@ erhomai.gr {
     reverse_proxy localhost:3000
 }
 ```
-
-### External API backend (`VITE_API_BASE`)
-
-OASA's host does not answer Cloudflare egress IPs, so Pages Functions cannot
-reach the telematics API directly. The static frontend can instead call an
-Express backend hosted where OASA is reachable (VPS, home server + tunnel):
-
-```bash
-VITE_API_BASE=https://api.example.com npm run build:ui
-```
-
-Unset (default) means same-origin `/api`. When set, add the API host to
-`connect-src` in `app/public/_headers`, and the backend already sends
-`Access-Control-Allow-Origin: *` for `/api` with a 204 preflight handler.
 
 ### Search-index rebuild (`CRON_SECRET`)
 

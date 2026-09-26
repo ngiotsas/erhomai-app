@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from '../../LangContext.js';
-import { searchLines, searchStopNames, fetchLineStops } from '../../apiClient.js';
 import styles from './SearchView.module.css';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
@@ -38,7 +37,14 @@ function useLineSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const data = await searchLines(q, controller.signal);
+        const res = await fetch('/api/lines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: q.trim() }),
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         setSuggestions(data);
       } catch (err) {
         if (err.name === 'AbortError') return;
@@ -76,7 +82,14 @@ function useStopSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const data = await searchStopNames(q, controller.signal);
+        const res = await fetch('/api/search-stops', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: q.trim() }),
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         setResults(data.stops ?? []);
         setIndexInfo(data.index ?? null);
       } catch (err) {
@@ -108,7 +121,11 @@ function useLineStops(lineId) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchLineStops(lineId)
+    fetch(`/api/lines/${encodeURIComponent(lineId)}/stops`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((d) => {
         if (!cancelled) setData(d);
       })
