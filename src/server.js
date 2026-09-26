@@ -28,6 +28,21 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+// Cross-origin API access: the static frontend may be hosted elsewhere
+// (e.g. Cloudflare Pages) while this backend runs where OASA is reachable.
+// Browsers send an OPTIONS preflight for the JSON POSTs; answer it here.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
+
 const TRUST_PROXY = Number.parseInt(process.env.TRUST_PROXY ?? '0', 10);
 if (Number.isFinite(TRUST_PROXY) && TRUST_PROXY > 0) {
   app.set('trust proxy', TRUST_PROXY);

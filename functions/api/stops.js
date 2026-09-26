@@ -3,6 +3,9 @@ import {
   distanceInMeters,
 } from '../_lib/geo.js';
 import { fetchClosestStops } from '../_lib/oasaClient.js';
+import { cached } from '../_lib/cache.js';
+
+const STOPS_TTL_MS = 5 * 60 * 1000;
 
 function parseStopLimit(rawLimit) {
   const DEFAULT_STOP_LIMIT = 5;
@@ -52,7 +55,11 @@ async function handleStops(context) {
   const limit = parseStopLimit(rawLimit);
 
   try {
-    const stops = await fetchClosestStops(lat, lng);
+    // Round to 4 decimals (~11m) so nearby users share one cache entry.
+    // cached() keys a synthetic Cache API request, so POST bodies are fine —
+    // Cloudflare never caches the POST response itself.
+    const cacheKey = `stops:${lat.toFixed(4)}:${lng.toFixed(4)}`;
+    const stops = await cached(cacheKey, STOPS_TTL_MS, () => fetchClosestStops(lat, lng));
     const nearest = stops
       .map((stop) => ({
         ...stop,

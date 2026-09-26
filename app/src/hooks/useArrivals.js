@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { api } from '../apiBase.js';
 
 const POLL_INTERVAL_MS = 25000;
 
@@ -23,7 +24,7 @@ export function useArrivals(stopCode) {
     try {
       const controller = new AbortController();
       abortRef.current = controller;
-      const res = await fetch(`/api/arrivals?stop=${code}`, {
+      const res = await fetch(api(`/api/arrivals?stop=${code}`), {
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

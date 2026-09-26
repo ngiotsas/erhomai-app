@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { api } from '../apiBase.js';
 
 export const FETCH_STATES = {
   IDLE: 'idle',
@@ -19,7 +20,7 @@ export function useStops(lat, lng, limit = 5) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch('/api/stops', {
+      const res = await fetch(api('/api/stops'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, limit }),

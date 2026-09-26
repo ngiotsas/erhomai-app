@@ -69,6 +69,27 @@ erhomai.gr {
 }
 ```
 
+### External API backend (`VITE_API_BASE`)
+
+OASA's host does not answer Cloudflare egress IPs, so Pages Functions cannot
+reach the telematics API directly. The static frontend can instead call an
+Express backend hosted where OASA is reachable (VPS, home server + tunnel):
+
+```bash
+VITE_API_BASE=https://api.example.com npm run build:ui
+```
+
+Unset (default) means same-origin `/api`. When set, add the API host to
+`connect-src` in `app/public/_headers`, and the backend already sends
+`Access-Control-Allow-Origin: *` for `/api` with a 204 preflight handler.
+
+### Search-index rebuild (`CRON_SECRET`)
+
+`GET /api/_cron/rebuild-index` triggers a full OASA crawl. It is disabled
+(404) unless a `CRON_SECRET` secret is set (`wrangler pages secret put
+CRON_SECRET`), in which case call it with
+`Authorization: Bearer <secret>` or `?secret=<secret>`.
+
 ## Development
 
 ### Workers (current default)
