@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from '../../LangContext.js';
-import { api } from '../../apiBase.js';
+import { searchLines, searchStopNames, fetchLineStops } from '../../apiClient.js';
 import styles from './SearchView.module.css';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
@@ -38,14 +38,7 @@ function useLineSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const res = await fetch(api('/api/lines'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ q: q.trim() }),
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await searchLines(q, controller.signal);
         setSuggestions(data);
       } catch (err) {
         if (err.name === 'AbortError') return;
@@ -83,14 +76,7 @@ function useStopSearch() {
       abortRef.current = controller;
       setLoading(true);
       try {
-        const res = await fetch(api('/api/search-stops'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ q: q.trim() }),
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await searchStopNames(q, controller.signal);
         setResults(data.stops ?? []);
         setIndexInfo(data.index ?? null);
       } catch (err) {
@@ -122,11 +108,7 @@ function useLineStops(lineId) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(api(`/api/lines/${encodeURIComponent(lineId)}/stops`))
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    fetchLineStops(lineId)
       .then((d) => {
         if (!cancelled) setData(d);
       })

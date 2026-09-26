@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '../apiBase.js';
+import { fetchStops as loadStops } from '../apiClient.js';
 
 export const FETCH_STATES = {
   IDLE: 'idle',
@@ -20,26 +20,16 @@ export function useStops(lat, lng, limit = 5) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch(api('/api/stops'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lng, limit }),
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        if (body.error === 'outside_service_area') {
-          setState(FETCH_STATES.OUTSIDE_AREA);
-          return;
-        }
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      setStops(Array.isArray(data.stops) ? data.stops : []);
+      const data = await loadStops({ lat, lng, limit }, controller.signal);
+      setStops(data.stops);
       setState(FETCH_STATES.READY);
     } catch (error) {
       if (error.name === 'AbortError') return;
       console.error('[stops]', error);
+      if (error.code === 'outside_service_area') {
+        setState(FETCH_STATES.OUTSIDE_AREA);
+        return;
+      }
       setState(FETCH_STATES.ERROR);
     }
   }, [lat, lng, limit]);

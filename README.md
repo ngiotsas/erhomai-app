@@ -8,13 +8,26 @@ You open the site, it asks for your location, it finds the stops around you, and
 
 ## Why a backend exists at all
 
-The OASA telematics API could in theory be called straight from the browser. It cannot, for three reasons:
+The OASA telematics API can be called straight from the browser: it answers
+on HTTPS (port 443) with `Access-Control-Allow-Origin: *`, so plain GET
+requests need no preflight. The frontend does exactly that by default
+(`app/src/oasaDirect.js`) — no backend, no tunnel, no VPS.
 
-1. **No HTTPS.** `telematics.oasa.gr` is served over plain HTTP by default (port 80 is firewalled). A browser on an HTTPS page blocks those requests as mixed content, and the site needs HTTPS anyway because the Geolocation API refuses to run without it. The API does respond on HTTPS (port 443), which this code uses.
-2. **No CORS headers.** Even over HTTP, the browser would reject the response.
-3. **A fragile upstream.** The OASA API goes down often and rate-limits aggressively. HTTP (port 80) is firewalled, so HTTPS (port 443) must be used.
+A backend still helps, for one reason: **Cloudflare's network cannot reach
+OASA at all.** `telematics.oasa.gr` (195.46.22.91) answers residential
+connections in ~0.5s but drops every packet from Cloudflare egress (all
+methods/paths/headers hang until timeout), so Pages Functions always 502.
+The upstream is also fragile and rate-limits aggressively, which is what
+caching is for.
 
-So a backend sits in the middle. It proxies the calls, caches the answers so one busy stop does not generate hundreds of upstream requests, and hands the frontend clean JSON with real line names instead of internal route codes.
+So there are two supported setups:
+
+- **Direct (default).** Browser → OASA over GET. Works from any static host.
+  Stop-name search uses a pregenerated `app/src/stopsIndex.json`
+  (`node app/scripts/gen-stops-index.mjs` refreshes it).
+- **Backend (`VITE_API_BASE`).** Browser → Express (`src/`) → OASA, for
+  caching and for networks where direct calls fail. The backend must run
+  where OASA is reachable (not on Cloudflare egress).
 
 ## Deploying
 

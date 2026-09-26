@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { api } from '../apiBase.js';
+import { fetchArrivals as loadArrivals } from '../apiClient.js';
 
 const POLL_INTERVAL_MS = 25000;
 
@@ -24,14 +24,10 @@ export function useArrivals(stopCode) {
     try {
       const controller = new AbortController();
       abortRef.current = controller;
-      const res = await fetch(api(`/api/arrivals?stop=${code}`), {
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await loadArrivals(code, controller.signal);
       if (activeStopRef.current !== code) return;
       setArrivals(data.arrivals ?? []);
-      setFetchedAt(Date.now());
+      setFetchedAt(data.fetchedAt ?? Date.now());
       setState(FETCH_STATES.READY);
     } catch (error) {
       if (error.name === 'AbortError') return;
