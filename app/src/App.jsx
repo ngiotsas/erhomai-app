@@ -147,12 +147,6 @@ export default function App() {
           )}
         </>
       )}
-
-      <section className={styles.dataCollection}>
-        <h2 className={styles.dataCollectionTitle}>{t.dataCollectionTitle}</h2>
-        <p className={styles.dataCollectionText}>{t.dataCollectionText}</p>
-        <a href="#" onClick={(e) => { e.preventDefault(); showPrivacyPage(); }} className={styles.dataCollectionLink}>{t.dataCollectionMore}</a>
-      </section>
     </AppShell>
   );
 }
