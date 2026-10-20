@@ -48,14 +48,21 @@ async function doBuildIndex() {
     const lines = await cached('lines:all', TWELVE_HOURS, () => fetchAllLines());
     const routeCodeSet = new Set();
 
-    const routePromises = lines.map((line) =>
-      cached(`routes:${line.lineCode}`, TWELVE_HOURS, () => fetchRoutesForLine(line.lineCode))
-        .then((routes) => {
-          for (const route of routes) routeCodeSet.add(route.routeCode);
-        })
-        .catch(() => {}),
-    );
-    await Promise.all(routePromises);
+    // Fetch routes in bounded batches. Firing all ~350 lines in parallel
+    // would hammer a rate-limiting upstream; CONCURRENCY keeps the burst
+    // small while still overlapping the slow round trips.
+    for (let i = 0; i < lines.length; i += CONCURRENCY) {
+      const batch = lines.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        batch.map((line) =>
+          cached(`routes:${line.lineCode}`, TWELVE_HOURS, () => fetchRoutesForLine(line.lineCode))
+            .catch(() => []),
+        ),
+      );
+      for (const routes of results) {
+        for (const route of routes) routeCodeSet.add(route.routeCode);
+      }
+    }
 
     const routeCodes = [...routeCodeSet];
     const newStops = new Map();
@@ -83,29 +90,39 @@ async function doBuildIndex() {
   }
 }
 
-// Load index lazily; if neither in-memory nor KV has it, build it. Concurrent
-// calls share a single build; a failed build is not retried until the cooldown
-// expires, so a request burst can't hammer OASA.
+// Load index lazily; if neither in-memory nor KV has it, build it. The build
+// itself runs in the BACKGROUND — the request that triggers it returns
+// immediately with indexStatus().building so the client can show "building…"
+// instead of waiting minutes for a full crawl. Concurrent calls share one
+// build; a failed build is not retried until the cooldown expires, so a
+// request burst can't hammer OASA.
 export function ensureSearchIndex(env) {
   if (isIndexValid()) return Promise.resolve();
-  if (buildPromise) return buildPromise;
+  if (buildPromise) return Promise.resolve();
   if (lastBuildFailedAt > 0 && Date.now() - lastBuildFailedAt < BUILD_RETRY_MS) {
     return Promise.resolve();
   }
 
   buildPromise = loadFromKV(env)
     .then((loaded) => {
-      if (loaded) return;
-      return doBuildIndex().then((size) => {
-        console.log(`[searchIndex] built with ${size} stops`);
-        return saveToKV(env);
-      });
+      if (loaded) {
+        buildPromise = null;
+        return;
+      }
+      doBuildIndex()
+        .then((size) => {
+          console.log(`[searchIndex] built with ${size} stops`);
+          return saveToKV(env);
+        })
+        .catch((err) => {
+          console.error('[searchIndex] build failed:', err.message);
+          lastBuildFailedAt = Date.now();
+        })
+        .finally(() => {
+          buildPromise = null;
+        });
     })
-    .catch((err) => {
-      console.error('[searchIndex] build failed:', err.message);
-      lastBuildFailedAt = Date.now();
-    })
-    .finally(() => {
+    .catch(() => {
       buildPromise = null;
     });
 
@@ -146,7 +163,7 @@ export function indexStatus() {
   const age = indexBuiltAt ? Date.now() - indexBuiltAt : null;
   return {
     ready: isIndexValid(),
-    building: buildingNow,
+    building: buildingNow || !!buildPromise,
     stale: stopsByCode.size > 0 && age !== null && age >= INDEX_TTL,
     failed: stopsByCode.size === 0 && lastBuildFailedAt > 0,
     stops: stopsByCode.size,

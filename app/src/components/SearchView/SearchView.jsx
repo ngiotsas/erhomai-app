@@ -391,7 +391,8 @@ export default function SearchView({
             </ul>
           )}
 
-          {!stopSearch.loading && stopSearch.query.length >= 2 && stopSearch.results.length === 0 && (
+          {!stopSearch.loading && stopSearch.query.length >= 2 && stopSearch.results.length === 0
+            && !(stopSearch.indexInfo && !stopSearch.indexInfo.ready && stopSearch.indexInfo.building) && (
             <StatusMessage type="status" message={t.noStopFound} />
           )}
         </div>

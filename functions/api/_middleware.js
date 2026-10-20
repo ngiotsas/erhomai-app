@@ -1,3 +1,9 @@
+// NOTE: this limiter is per-isolate. Workers run many isolates, so the
+// effective per-IP allowance is roughly max × (isolates serving that IP);
+// it stops casual abuse and retry storms but is NOT a hard per-IP quota.
+// If the API starts getting hammered, add a Cloudflare Rate Limiting rule
+// (or a Durable Object counter) for a real limit. The IP is only held in
+// memory for the window below — see the privacy policy.
 const rateLimitMap = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 60;
@@ -34,6 +40,8 @@ export async function onRequest(context) {
   }
 
   // Rate limiting
+  // CF-Connecting-IP is set by Cloudflare on every request through the edge;
+  // it is only absent in local dev, where all requests share one bucket.
   const ip = context.request.headers.get('CF-Connecting-IP') || '0.0.0.0';
   const pool = poolFor(context.request.url);
   const key = `rl:${pool}:${ip}`;

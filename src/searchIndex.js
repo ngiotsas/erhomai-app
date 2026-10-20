@@ -21,14 +21,20 @@ export function initSearchIndex() {
       const lines = await cached('lines:all', TWELVE_HOURS, () => fetchAllLines());
       const routeCodeSet = new Set();
 
-      const routePromises = lines.map((line) =>
-        cached(`routes:${line.lineCode}`, TWELVE_HOURS, () => fetchRoutesForLine(line.lineCode))
-          .then((routes) => {
-            for (const route of routes) routeCodeSet.add(route.routeCode);
-          })
-          .catch(() => {}),
-      );
-      await Promise.all(routePromises);
+      // Bounded batches: firing all ~350 lines in parallel would hammer
+      // OASA's rate limiting. CONCURRENCY keeps the burst small.
+      for (let i = 0; i < lines.length; i += CONCURRENCY) {
+        const batch = lines.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map((line) =>
+            cached(`routes:${line.lineCode}`, TWELVE_HOURS, () => fetchRoutesForLine(line.lineCode))
+              .catch(() => []),
+          ),
+        );
+        for (const routes of results) {
+          for (const route of routes) routeCodeSet.add(route.routeCode);
+        }
+      }
 
       const routeCodes = [...routeCodeSet];
       const newStops = new Map();

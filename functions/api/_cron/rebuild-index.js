@@ -1,5 +1,15 @@
 import { rebuildSearchIndex } from '../../_lib/searchIndex.js';
 
+// Constant-time comparison so the secret length is not leaked via timing.
+function safeEqual(a, b) {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
 // Manual rebuild trigger. There are no cron triggers on Pages, so this route
 // would otherwise let anyone kick off a full OASA crawl. Gate it behind a
 // secret: set CRON_SECRET (wrangler pages secret put CRON_SECRET) and call
@@ -12,7 +22,7 @@ export async function onRequestGet(context) {
   const provided = auth.startsWith('Bearer ')
     ? auth.slice('Bearer '.length)
     : (url.searchParams.get('secret') ?? '');
-  if (!expected || provided !== expected) {
+  if (!expected || !safeEqual(provided, expected)) {
     return new Response(
       JSON.stringify({ error: 'not_found', message: 'Άγνωστο endpoint.' }),
       { status: 404, headers: { 'Content-Type': 'application/json' } },

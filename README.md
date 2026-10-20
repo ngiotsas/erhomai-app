@@ -355,6 +355,10 @@ Requests that miss the cache go through singleflight. Fifty users loading the sa
 
 **Greek line IDs in URLs.** Some OASA line IDs contain Greek characters (e.g., "Χ95", "Β5"). The frontend normalizes them to Latin before constructing API URLs. The lines search also normalizes Greek ↔ Latin for matching.
 
+**Rate limiting is per-isolate.** The in-memory limiter in `functions/api/_middleware.js` runs inside each Worker isolate, so the effective per-IP allowance is roughly `60 requests/minute × isolates serving that IP`. It stops casual abuse but is not a hard per-IP quota. If the API starts getting hammered, add a Cloudflare Rate Limiting rule (or a Durable Object counter) for a real limit.
+
+**Index builds run in the background.** When a search finds the search index expired (or missing from KV), the Workers backend starts a fresh build in the background and answers immediately with `index.building`; the client shows a "building…" message. A cron-style rebuild can also be triggered via the `CRON_SECRET` endpoint (see above), which is optional.
+
 ## Credit
 
 Built on the community documentation of the OASA telematics API by Giannis Papaioannou: https://oasa-telematics-api.readthedocs.io/
