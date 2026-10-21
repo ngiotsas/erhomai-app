@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'erhomai-v1';
+const CACHE_VERSION = 'erhomai-v2';
 const lastRefreshed = new Map();
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CORE_URLS = [
