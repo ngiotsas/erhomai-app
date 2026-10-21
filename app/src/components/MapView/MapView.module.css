@@ -31,11 +31,13 @@
 
 /* The pin is a circular badge anchored at its CENTER (anchor: 'center' in
    MapView.jsx), so the circle's center IS the stop's location at any zoom.
-   Do not add pointer decorations that hang outside the box: they would
-   shift the visual anchor away from the coordinate again. */
+   IMPORTANT: never set `position` here. The element also carries MapLibre's
+   `maplibregl-marker` class, which relies on `position: absolute` to place
+   the pin at its projected screen coordinates; an app-level `position`
+   rule of equal specificity wins the cascade and breaks placement
+   (pins stack in document flow and drift as the map moves). */
 .pin,
 .pinSelected {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;

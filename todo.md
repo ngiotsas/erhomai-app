@@ -4,9 +4,10 @@ Full review of the Workers backend (`functions/`), Express backend (`src/`), fro
 
 ## Fixed 2026-10-22 (map pin misplacement, user-reported)
 
-- [x] **Stop pins sat off their true location at low zoom ("on top of buildings").**
-  The pin was a 32px circle with a 6px pointer triangle hanging below it, anchored `bottom` with `offset: [0, -4]`. That placed the circle's visual center ~12px above the true coordinate (≈45 m at zoom 15, where 1 px ≈ 3.75 m), which the eye reads as the stop location — while the tip dangled ~10px below it. Constant pixel offset = large meter error at low zoom, negligible at high zoom, exactly the reported behavior.
-  *Fix:* `MapView.jsx` anchors the marker at its `center` (the circle center IS the stop), and `MapView.module.css` drops the dangling `::after` triangle. Popup offset adjusted 28 → 22.
+- [x] **Stop pins sat off their true location and scattered as the user zoomed.**
+  Two compounding causes, both now fixed:
+  1. **Anchor geometry.** The pin was a 32px circle with a 6px pointer triangle hanging below it, anchored `bottom` with `offset: [0, -4]` — the circle's visual center sat ~12px above the true coordinate (~45 m at zoom 15) while the tip dangled ~10px below. Fixed by anchoring the circle at its `center` (the circle center IS the stop) and dropping the dangling triangle.
+  2. **CSS cascade collision (the big one).** `.pin` set `position: relative`, and the pin element also carries MapLibre's `maplibregl-marker` class, which needs `position: absolute` to place the element at its projected screen coordinates. Equal specificity + later source order meant the app rule won: pins fell into normal flow, stacking 32px apart, and MapLibre's `transform: translate(x,y)` applied on top of each stacked offset — stop #1 was roughly right, stop #2 off by 32px, #3 by 64px, … #20 by ~600px. Zooming updates only the translate values, so the pins appeared to drift around the map. The user's location dot was unaffected (`.userDot` sets no `position`). Fixed by removing `position` from `.pin`/`.pinSelected` entirely; a comment in the CSS warns against reintroducing it.
 
 ## Fixed 2026-10-21 (map blank bug)
 
