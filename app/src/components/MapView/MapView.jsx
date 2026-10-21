@@ -133,11 +133,10 @@ export default function MapView({
 
       const marker = new Marker({
         element: el,
-        anchor: 'bottom',
-        offset: [0, -4],
+        anchor: 'center',
       })
         .setLngLat([stop.lng, stop.lat])
-        .setPopup(new Popup({ offset: 28, closeButton: false })
+        .setPopup(new Popup({ offset: 22, closeButton: false })
           .setDOMContent(popupEl))
         .addTo(map);
 

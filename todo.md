@@ -1,6 +1,12 @@
 # TODO — Code review findings (2026-10-21)
 
-Full review of the Workers backend (`functions/`), Express backend (`src/`), frontend (`app/src`), PWA/TWA assets, and tests. All 29 tests pass, lint is clean. Checkboxes = open items, ordered by severity.
+Full review of the Workers backend (`functions/`), Express backend (`src/`), frontend (`app/src`), PWA/TWA assets, and tests. All 106 tests pass, lint is clean. Checkboxes = open items, ordered by severity.
+
+## Fixed 2026-10-22 (map pin misplacement, user-reported)
+
+- [x] **Stop pins sat off their true location at low zoom ("on top of buildings").**
+  The pin was a 32px circle with a 6px pointer triangle hanging below it, anchored `bottom` with `offset: [0, -4]`. That placed the circle's visual center ~12px above the true coordinate (≈45 m at zoom 15, where 1 px ≈ 3.75 m), which the eye reads as the stop location — while the tip dangled ~10px below it. Constant pixel offset = large meter error at low zoom, negligible at high zoom, exactly the reported behavior.
+  *Fix:* `MapView.jsx` anchors the marker at its `center` (the circle center IS the stop), and `MapView.module.css` drops the dangling `::after` triangle. Popup offset adjusted 28 → 22.
 
 ## Fixed 2026-10-21 (map blank bug)
 

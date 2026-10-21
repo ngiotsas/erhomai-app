@@ -29,6 +29,10 @@
 
 /* ── Pin markers ── */
 
+/* The pin is a circular badge anchored at its CENTER (anchor: 'center' in
+   MapView.jsx), so the circle's center IS the stop's location at any zoom.
+   Do not add pointer decorations that hang outside the box: they would
+   shift the visual anchor away from the coordinate again. */
 .pin,
 .pinSelected {
   position: relative;
@@ -45,29 +49,11 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.pin::after,
-.pinSelected::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #111;
-  margin-left: -5px;
-}
-
 .pinSelected {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: #fff;
   box-shadow: 0 2px 6px rgba(26, 86, 219, 0.4);
-}
-
-.pinSelected::after {
-  border-top-color: var(--color-accent);
 }
 
 /* ── User location dot ── */
