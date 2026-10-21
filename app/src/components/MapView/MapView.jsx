@@ -105,6 +105,17 @@ export default function MapView({
         : 0;
       console.info(`[erhomai] pin offsets after moveend: ${deltas.length} pins, max ${max.toFixed(1)}px`, deltas);
     });
+    let lastMidZoomLog = 0;
+    map.on('move', () => {
+      const now = Date.now();
+      if (now - lastMidZoomLog < 400) return;
+      lastMidZoomLog = now;
+      const deltas = measurePinOffsets();
+      const max = deltas.length
+        ? Math.max(...deltas.map((d) => Math.hypot(d.dx, d.dy)))
+        : 0;
+      console.info(`[erhomai] pin offsets DURING zoom: ${deltas.length} pins, max ${max.toFixed(1)}px`);
+    });
     window.__erhomaiPinDiag = measurePinOffsets;
 
     return () => {
