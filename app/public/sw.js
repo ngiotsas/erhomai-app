@@ -19,6 +19,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_VERSION);
     await Promise.allSettled(CORE_URLS.map((url) => cache.add(url)));
+    // Parse the HTML shell for its hashed assets (script/modulepreload and
+    // stylesheet URLs) and pre-cache them. Only overwrite the cached shell
+    // when the fetch SUCCEEDED: a 503 shell would trap offline users on an
+    // error page until their next online navigation.
     const html = await fetch('/index.html').catch(() => null);
     if (html && html.ok) {
       const text = await html.text();
@@ -27,8 +31,8 @@ self.addEventListener('install', (event) => {
       while ((match = assetRe.exec(text)) !== null) {
         await cache.add(match[1]).catch(() => {});
       }
+      await cache.put('/index.html', html);
     }
-    await cache.put('/index.html', html ?? new Response('', { status: 503 }));
     self.skipWaiting();
   })());
 });

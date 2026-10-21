@@ -11,16 +11,21 @@ import styles from './MapView.module.css';
 
 const TILE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
-function createStopElement() {
-  const el = document.createElement('div');
-  el.className = styles.pin;
-  el.innerHTML = `<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+// The pin SVG is static per stop; parse it once and clone per element so
+// marker rebuilds (stops change, language switch) don't re-parse the markup.
+const pinTemplate = document.createElement('template');
+pinTemplate.innerHTML = `<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 <rect x="0" y="2" width="22" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
 <rect x="3" y="4" width="7" height="4" rx="1" fill="currentColor" opacity="0.2"/>
 <rect x="11" y="4" width="8" height="4" rx="1" fill="currentColor" opacity="0.2"/>
 <circle cx="4.5" cy="13.5" r="1.5" fill="currentColor"/>
 <circle cx="17.5" cy="13.5" r="1.5" fill="currentColor"/>
 </svg>`;
+
+function createStopElement() {
+  const el = document.createElement('div');
+  el.className = styles.pin;
+  el.appendChild(pinTemplate.content.cloneNode(true));
   return el;
 }
 

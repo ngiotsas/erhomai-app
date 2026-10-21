@@ -62,3 +62,8 @@ https://developers.google.com/digital-asset-links/tools/generator.
   updates are pushed by deploying the web app — no store update required.
 - Offline: the service worker caches the app shell, so the TWA opens offline
   (arrivals still require a network connection).
+- **Browser compatibility:** the frontend uses `AbortSignal.any`/`timeout`
+  (Chrome 116+, Safari 17.4+, Firefox 124+) with a manual fallback in
+  `app/src/abort.js` for older engines, so API calls still time out on old
+  Android WebViews. TWA itself requires Chrome 72+; if you target very old
+  devices, keep the fallback path in mind when touching network code.

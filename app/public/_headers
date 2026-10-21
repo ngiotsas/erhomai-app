@@ -6,12 +6,13 @@
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(self)
 
-# Vite-hashed JS/CSS assets — immutable, 1-year cache
-/assets/index-*
+# Vite-hashed JS/CSS assets — immutable, 1-year cache.
+# *.js / *.css cover every current and future hashed chunk with one rule.
+# The non-hashed MapLibre files use the .mjs extension, so they do NOT match
+# *.js and fall through to the /assets/maplibre-* rule below.
+/assets/*.js
   Cache-Control: public, max-age=31536000, immutable
-/assets/MapView-*
-  Cache-Control: public, max-age=31536000, immutable
-/assets/SearchView-*
+/assets/*.css
   Cache-Control: public, max-age=31536000, immutable
 
 # Non-hashed assets (workers, etc.) — shorter cache, not immutable

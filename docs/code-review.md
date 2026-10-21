@@ -433,10 +433,10 @@ These are correct and should survive any refactor:
 
 ## Suggested commit sequence (completed)
 
-All P0–P2 items were closed in commits `39c5678` through `5cbe2f6`. Two P3 items remain open:
+All P0–P2 items were closed in commits `39c5678` through `5cbe2f6`. The two remaining P3 items were closed later:
 
-- `createStopElement` in `MapView.jsx` builds a DOM element per stop per render (low cost at current data volumes).
-- No ESLint configuration (useful if the codebase grows).
+- `createStopElement` in `MapView.jsx` builds a DOM element per stop per render → the pin SVG is now parsed once into a `<template>` and cloned per element (2026-10).
+- No ESLint configuration → `app/eslint.config.js` now lints `app/src/` (`npm --prefix app run lint`).
 
 ## Licensing update (2026-07-25)
 

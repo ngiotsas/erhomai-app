@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { signalWithTimeout } from '../abort.js';
 
 export const FETCH_STATES = {
   IDLE: 'idle',
@@ -23,7 +24,7 @@ export function useStops(lat, lng, limit = 5) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, limit }),
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
+        signal: signalWithTimeout(controller.signal, 8000),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -45,6 +46,9 @@ export function useStops(lat, lng, limit = 5) {
 
   /* eslint-disable react-hooks/set-state-in-effect -- fetches when coords change */
   useEffect(() => {
+    // New coordinates make the previous location's stops misleading: clear
+    // them so the list doesn't flash the wrong neighbourhood while loading.
+    setStops(null);
     fetchStops();
     return () => {
       abortRef.current?.abort();

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from '../../LangContext.js';
 import { normalizeLineId } from '../../normalizeLineId.js';
+import { signalWithTimeout } from '../../abort.js';
 import styles from './SearchView.module.css';
 import ArrivalItem from '../ArrivalItem/ArrivalItem.jsx';
 import StatusMessage from '../StatusMessage/StatusMessage.jsx';
@@ -31,7 +32,7 @@ function useLineSearch() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ q: q.trim() }),
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
+          signal: signalWithTimeout(controller.signal, 6000),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -76,7 +77,7 @@ function useStopSearch() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ q: q.trim() }),
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]),
+          signal: signalWithTimeout(controller.signal, 6000),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();

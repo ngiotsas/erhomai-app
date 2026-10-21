@@ -60,14 +60,29 @@ Known follow-up (from the same session): when a browser lacks WebGL2, `MapView` 
 
 ## Low
 
-- [ ] **L1.** `functions/_lib/cache.js:39,50` — `caches.default.put()` not awaited and no error handling; a rejected put is silently lost (cache misses only, correctness fine).
-- [ ] **L2.** Negative caching on Workers (`cache.js:20-24`) rethrows a fresh plain `Error`, discarding `OasaError.name`/`action`; `__oasaError` is stored but never read.
-- [ ] **L3.** `app/public/_headers:10-15` — immutable rules cover only `index-*`, `MapView-*`, `SearchView-*`; any other hashed chunk falls through to heuristic caching. Consider `/assets/*.js`.
-- [ ] **L4.** `app/public/sw.js:24-30` — if `/index.html` fetch fails at install, a 503 app-shell is cached and offline users get stuck; the asset regex misses `modulepreload`/`preload` links.
-- [ ] **L5.** `useStops.js` keeps showing the previous location's stops while new coordinates load.
-- [ ] **L6.** `AbortSignal.any` needs Safari 17.4+/Firefox 124+ — note for older Android WebViews in the TWA.
-- [ ] **L7.** `docs/code-review.md` open P3 item (`createStopElement` per stop per render in `MapView.jsx:14`) is still open and accurate.
-- [ ] **L8.** No tests exercise the `functions/` request handlers or frontend components; the `functions/_lib` modules (geo, oasaClient, cache, normalize) are now covered by parity tests, and handler-level tests remain open.
+- [x] **L1.** `functions/_lib/cache.js` — `caches.default.put()` was fire-and-forget with no error handling. *(fixed)*
+  Both put paths are now awaited inside `bestEffortPut`, which swallows failures: a failed cache write only costs a future miss, and can no longer surface as an unhandled rejection.
+
+- [x] **L2.** Negative caching on Workers discarded `OasaError` metadata. *(fixed)*
+  The negative-cache body now stores `__name`, `__action`, `__status` alongside the message, and cache hits reconstruct the error with that metadata, so callers inspecting `err.name`/`err.action` behave identically on hits and misses.
+
+- [x] **L3.** `_headers` immutable rules only covered three chunk prefixes. *(fixed)*
+  Replaced with `/assets/*.js` + `/assets/*.css` (1y, immutable). The non-hashed MapLibre files use `.mjs`, which does not match `*.js`, so they still fall through to the `/assets/maplibre-*` 1-week rule. Future hashed chunks are covered automatically.
+
+- [x] **L4.** Service worker could cache a 503 app shell. *(fixed)*
+  `sw.js` install only overwrites the cached shell when the `/index.html` fetch succeeds; a failed fetch no longer leaves a permanent 503 shell. The asset regex already covered `modulepreload`/`preload` links via the generic `href="…"` pattern (verified against the build output).
+
+- [x] **L5.** `useStops.js` kept showing the previous location's stops. *(fixed)*
+  The effect clears `stops` when coordinates change, so the list shows the loading state instead of flashing the wrong neighbourhood's stops.
+
+- [x] **L6.** `AbortSignal.any` requires Chrome 116+/Safari 17.4+/Firefox 124+. *(fixed)*
+  New `app/src/abort.js` (`signalWithTimeout`) wraps the native API with a manual-AbortController fallback for older engines; all four call sites use it. `twa/README.md` documents the compatibility note.
+
+- [x] **L7.** `docs/code-review.md` open P3 items. *(fixed)*
+  `createStopElement` now clones a pre-parsed `<template>` instead of re-parsing the SVG per stop; the ESLint-configuration item was already closed (`app/eslint.config.js`). The review doc's status section is updated.
+
+- [x] **L8.** No tests for the `functions/` request handlers. *(fixed)*
+  New `test/handlers.test.js` covers the middleware (security headers, 429 on the 61st request, OPTIONS preflight), `/api/stops` (valid/invalid/outside-area, GET compat, no upstream call on 400s), `/api/arrivals` (bad stop code, enrichment), `/api/lines` (Greek↔Latin matching), `/api/search-stops` (short query, background build → results), and `/api/_cron/rebuild-index` (404 without/wrong token, 200 with the secret). Suite total: 106 tests.
 
 ## What not to change
 
