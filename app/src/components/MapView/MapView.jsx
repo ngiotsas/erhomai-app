@@ -76,7 +76,39 @@ export default function MapView({
 
     mapRef.current = map;
 
+    // Temporary diagnostics for the pin-positioning bug: after every
+    // moveend, compare each marker's rendered screen position with the
+    // position MapLibre projects for its coordinates. A correctly
+    // positioned marker shows ~0px delta; the bug shows up as large or
+    // zoom-dependent deltas. Also exposed as window.__erhomaiPinDiag().
+    const measurePinOffsets = () => {
+      const cRect = containerRef.current.getBoundingClientRect();
+      const out = [];
+      for (const marker of Object.values(markersRef.current)) {
+        const expected = map.project(marker.getLngLat());
+        const el = marker.getElement();
+        const r = el.getBoundingClientRect();
+        out.push({
+          dx: Math.round((r.left + r.width / 2) - cRect.left - expected.x),
+          dy: Math.round((r.top + r.height / 2) - cRect.top - expected.y),
+          position: getComputedStyle(el).position,
+          width: r.width,
+          height: r.height,
+        });
+      }
+      return out;
+    };
+    map.on('moveend', () => {
+      const deltas = measurePinOffsets();
+      const max = deltas.length
+        ? Math.max(...deltas.map((d) => Math.hypot(d.dx, d.dy)))
+        : 0;
+      console.info(`[erhomai] pin offsets after moveend: ${deltas.length} pins, max ${max.toFixed(1)}px`, deltas);
+    });
+    window.__erhomaiPinDiag = measurePinOffsets;
+
     return () => {
+      delete window.__erhomaiPinDiag;
       map.remove();
       mapRef.current = null;
     };
