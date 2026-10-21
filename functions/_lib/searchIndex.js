@@ -6,24 +6,35 @@ const CONCURRENCY = 5;
 const KV_KEY = 'search-index';
 const INDEX_TTL = TWELVE_HOURS;
 const BUILD_RETRY_MS = 15 * 60 * 1000;
+// If more than this share of the per-route fetches fails, the index is
+// incomplete: mark it degraded (surfaced to clients) and let it expire
+// sooner than a healthy index so it heals on the next build.
+const DEGRADED_FAILURE_RATIO = 0.1;
+const DEGRADED_TTL_MS = 60 * 60 * 1000;
 
 let stopsByCode = new Map();
 let indexBuiltAt = 0;
+let indexDegraded = false;
 let buildingNow = false;
 let buildPromise = null;
 let lastBuildFailedAt = 0;
 
 function isIndexValid() {
-  return stopsByCode.size > 0 && (Date.now() - indexBuiltAt) < INDEX_TTL;
+  const ttl = indexDegraded ? DEGRADED_TTL_MS : INDEX_TTL;
+  return stopsByCode.size > 0 && (Date.now() - indexBuiltAt) < ttl;
 }
 
 async function loadFromKV(env) {
   try {
     const raw = await env.SEARCH_INDEX.get(KV_KEY, 'json');
-    if (raw && raw.stops && raw.builtAt && (Date.now() - raw.builtAt) < INDEX_TTL) {
-      stopsByCode = new Map(Object.entries(raw.stops));
-      indexBuiltAt = raw.builtAt;
-      return true;
+    if (raw && raw.stops && raw.builtAt) {
+      const ttl = raw.degraded ? DEGRADED_TTL_MS : INDEX_TTL;
+      if ((Date.now() - raw.builtAt) < ttl) {
+        stopsByCode = new Map(Object.entries(raw.stops));
+        indexBuiltAt = raw.builtAt;
+        indexDegraded = raw.degraded === true;
+        return true;
+      }
     }
   } catch {
     // KV may not be bound in dev
@@ -35,8 +46,11 @@ async function saveToKV(env) {
   try {
     await env.SEARCH_INDEX.put(KV_KEY, JSON.stringify({
       builtAt: indexBuiltAt,
+      degraded: indexDegraded,
       stops: Object.fromEntries(stopsByCode),
-    }));
+    }), {
+      expirationTtl: Math.floor((indexDegraded ? DEGRADED_TTL_MS : INDEX_TTL) / 1000),
+    });
   } catch {
     // KV may not be bound in dev
   }
@@ -44,6 +58,8 @@ async function saveToKV(env) {
 
 async function doBuildIndex() {
   buildingNow = true;
+  let fetches = 0;
+  let failures = 0;
   try {
     const lines = await cached('lines:all', TWELVE_HOURS, () => fetchAllLines());
     const routeCodeSet = new Set();
@@ -53,10 +69,14 @@ async function doBuildIndex() {
     // small while still overlapping the slow round trips.
     for (let i = 0; i < lines.length; i += CONCURRENCY) {
       const batch = lines.slice(i, i + CONCURRENCY);
+      fetches += batch.length;
       const results = await Promise.all(
         batch.map((line) =>
           cached(`routes:${line.lineCode}`, TWELVE_HOURS, () => fetchRoutesForLine(line.lineCode))
-            .catch(() => []),
+            .catch(() => {
+              failures++;
+              return [];
+            }),
         ),
       );
       for (const routes of results) {
@@ -69,10 +89,14 @@ async function doBuildIndex() {
 
     for (let i = 0; i < routeCodes.length; i += CONCURRENCY) {
       const batch = routeCodes.slice(i, i + CONCURRENCY);
+      fetches += batch.length;
       const results = await Promise.all(
         batch.map((rc) =>
           cached(`stops:route:${rc}`, TWELVE_HOURS, () => fetchRouteStops(rc))
-            .catch(() => []),
+            .catch(() => {
+              failures++;
+              return [];
+            }),
         ),
       );
       for (const stopList of results) {
@@ -84,6 +108,9 @@ async function doBuildIndex() {
 
     stopsByCode = newStops;
     indexBuiltAt = Date.now();
+    // A build that completes with many swallowed failures produces an
+    // incomplete index; say so instead of pretending it is complete.
+    indexDegraded = fetches > 0 && failures / fetches >= DEGRADED_FAILURE_RATIO;
     return stopsByCode.size;
   } finally {
     buildingNow = false;
@@ -165,6 +192,7 @@ export function indexStatus() {
     ready: isIndexValid(),
     building: buildingNow || !!buildPromise,
     stale: stopsByCode.size > 0 && age !== null && age >= INDEX_TTL,
+    degraded: indexDegraded,
     failed: stopsByCode.size === 0 && lastBuildFailedAt > 0,
     stops: stopsByCode.size,
   };

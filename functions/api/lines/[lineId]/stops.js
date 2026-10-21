@@ -1,26 +1,15 @@
 import { fetchAllLines, fetchRoutesForLine, fetchRouteStops } from '../../../_lib/oasaClient.js';
 import { cached } from '../../../_lib/cache.js';
+import { normalizeLineText } from '../../../_lib/normalize.js';
 
 const LINES_TTL_MS = 12 * 60 * 60 * 1000;
 const ROUTES_TTL_MS = 12 * 60 * 60 * 1000;
-
-const GREEK_TO_LATIN = {
-  'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'h','ι':'i',
-  'κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r',
-  'σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'x','ψ':'ps','ω':'o',
-  'ά':'a','έ':'e','ή':'h','ί':'i','ό':'o','ύ':'y','ώ':'o',
-  'ϊ':'i','ϋ':'y',
-};
-
-function normalize(s) {
-  return s.toLowerCase().split('').map((c) => GREEK_TO_LATIN[c] || c).join('');
-}
 
 export async function onRequestGet(context) {
   try {
     const lineId = context.params.lineId;
     const lines = await cached('lines:all', LINES_TTL_MS, () => fetchAllLines());
-    const matching = lines.filter((l) => normalize(l.lineId) === normalize(lineId));
+    const matching = lines.filter((l) => normalizeLineText(l.lineId) === normalizeLineText(lineId));
 
     if (matching.length === 0) {
       return new Response(
@@ -30,13 +19,19 @@ export async function onRequestGet(context) {
     }
 
     const primary = matching[0];
+
+    // Fetch routes for every matching line in parallel. One failing line
+    // degrades to an empty route list instead of a 502 for everything.
+    const routesResults = await Promise.all(
+      matching.map((line) =>
+        cached(`routes:${line.lineCode}`, ROUTES_TTL_MS, () => fetchRoutesForLine(line.lineCode))
+          .catch(() => []),
+      ),
+    );
+
     const allRouteCodes = new Set();
     const routeNames = [];
-
-    for (const line of matching) {
-      const routes = await cached(`routes:${line.lineCode}`, ROUTES_TTL_MS, () =>
-        fetchRoutesForLine(line.lineCode),
-      );
+    routesResults.forEach((routes) => {
       for (const route of routes) {
         allRouteCodes.add(route.routeCode);
         routeNames.push({
@@ -45,13 +40,17 @@ export async function onRequestGet(context) {
           routeNameEn: route.routeNameEn,
         });
       }
-    }
+    });
 
-    const routeStops = [];
-    for (const rc of allRouteCodes) {
-      const stops = await cached(`stops:route:${rc}`, ROUTES_TTL_MS, () => fetchRouteStops(rc));
-      routeStops.push({ routeCode: rc, stops });
-    }
+    // Fetch stops for all routes in parallel; a single route failure
+    // degrades to an empty stop list for that route only.
+    const routeStops = await Promise.all(
+      [...allRouteCodes].map((rc) =>
+        cached(`stops:route:${rc}`, ROUTES_TTL_MS, () => fetchRouteStops(rc))
+          .then((stops) => ({ routeCode: rc, stops }))
+          .catch(() => ({ routeCode: rc, stops: [] })),
+      ),
+    );
 
     const stopsByRoute = Object.fromEntries(
       routeStops.map((rs) => [rs.routeCode, rs.stops]),
@@ -67,7 +66,7 @@ export async function onRequestGet(context) {
           stops: stopsByRoute[r.routeCode] ?? [],
         })),
       }),
-      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600' } },
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
     );
   } catch {
     return new Response(

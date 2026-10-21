@@ -13,7 +13,7 @@ export default function AppShell({ wide, children, onShowPrivacy }) {
         <button
           className={styles.langBtn}
           onClick={() => setLang(lang === 'el' ? 'en' : 'el')}
-          aria-label="Switch language"
+          aria-label={t.switchLanguage}
         >
           {lang === 'el' ? 'EN' : 'EL'}
         </button>

@@ -343,6 +343,8 @@ Two layers depending on deployment target:
 
 Requests that miss the cache go through singleflight. Fifty users loading the same stop at the same moment produce one upstream call, not fifty.
 
+API responses are sent with `Cache-Control: no-store`: freshness is managed entirely by the two server-side layers above, and the app calls the API with POST, which browsers never cache anyway.
+
 ## Known rough edges
 
 **Parameter order in `getClosestStops`.** The upstream documentation calls the two parameters `x` and `y` without saying which is which. This code sends latitude as `p1`. If the stops come back from the wrong part of Athens, swap the two arguments in `fetchClosestStops`.

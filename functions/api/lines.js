@@ -1,24 +1,13 @@
 import { fetchAllLines } from '../_lib/oasaClient.js';
 import { cached } from '../_lib/cache.js';
+import { normalizeLineText } from '../_lib/normalize.js';
 
 const LINES_TTL_MS = 12 * 60 * 60 * 1000;
 
-// Normalize Latin↔Greek lookalike characters so "X95" matches "Χ95", "B5" matches "Β5"
-const GREEK_TO_LATIN = {
-  'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'h','ι':'i',
-  'κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r',
-  'σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'x','ψ':'ps','ω':'o',
-  'ά':'a','έ':'e','ή':'h','ί':'i','ό':'o','ύ':'y','ώ':'o',
-  'ϊ':'i','ϋ':'y',
-};
-function normalize(s) {
-  return s.toLowerCase().split('').map((c) => GREEK_TO_LATIN[c] || c).join('');
-}
-
 function matchesQuery(line, q) {
-  const qNorm = normalize(q);
-  if (normalize(line.lineId).includes(qNorm)) return true;
-  if (normalize(line.lineName).includes(qNorm)) return true;
+  const qNorm = normalizeLineText(q);
+  if (normalizeLineText(line.lineId).includes(qNorm)) return true;
+  if (normalizeLineText(line.lineName).includes(qNorm)) return true;
   if (line.lineNameEn && line.lineNameEn.toLowerCase().includes(q.toLowerCase())) return true;
   return false;
 }
@@ -52,7 +41,7 @@ async function handleLines(context) {
     }
     return new Response(
       JSON.stringify(filtered.slice(0, 50)),
-      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } },
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
     );
   } catch {
     return new Response(

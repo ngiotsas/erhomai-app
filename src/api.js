@@ -3,6 +3,7 @@ import { cached } from './cache.js';
 import { distanceInMeters, isValidLatitude, isValidLongitude, isWithinServiceArea } from './geo.js';
 import { fetchClosestStops, fetchRoutesForStop, fetchStopArrivals, fetchAllLines, fetchRoutesForLine, fetchRouteStops } from './oasaClient.js';
 import { searchStops, initSearchIndex, indexStatus } from './searchIndex.js';
+import { normalizeLineText } from '../functions/_lib/normalize.js';
 
 const STOPS_TTL_MS = 5 * 60 * 1000;
 const ARRIVALS_TTL_MS = 25 * 1000;
@@ -20,18 +21,7 @@ function parseStopLimit(rawLimit) {
 }
 
 // Normalize Latin↔Greek lookalikes so "X95" matches "Χ95", "B5" matches "Β5".
-// Must stay in sync with functions/api/lines.js and functions/api/lines/[lineId]/stops.js.
-const GREEK_TO_LATIN = {
-  'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'h', 'ι': 'i',
-  'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'r',
-  'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'o',
-  'ά': 'a', 'έ': 'e', 'ή': 'h', 'ί': 'i', 'ό': 'o', 'ύ': 'y', 'ώ': 'o',
-  'ϊ': 'i', 'ϋ': 'y',
-};
-
-function normalizeLineText(s) {
-  return s.toLowerCase().split('').map((c) => GREEK_TO_LATIN[c] || c).join('');
-}
+// Shared with functions/api via functions/_lib/normalize.js (imported above).
 
 function matchesLineQuery(line, q) {
   const qNorm = normalizeLineText(q);
@@ -88,7 +78,7 @@ export function createApiRouter() {
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
       .slice(0, limit);
 
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'no-store');
     res.json({ origin: { lat, lng }, stops: nearest });
   }
 
@@ -137,7 +127,7 @@ export function createApiRouter() {
       })
       .sort((a, b) => a.minutes - b.minutes);
 
-    res.setHeader('Cache-Control', 'public, max-age=10');
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
       stopCode,
       fetchedAt: new Date().toISOString(),
@@ -161,7 +151,7 @@ export function createApiRouter() {
       if (q) {
         filtered = lines.filter((l) => matchesLineQuery(l, q));
       }
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Cache-Control', 'no-store');
       res.json(filtered.slice(0, 50));
     } catch {
       res.status(502).json({ error: 'oasa_unavailable', message: 'Δεν μπορέσαμε να επικοινωνήσουμε με το ΟΑΣΑ.' });
@@ -183,30 +173,40 @@ export function createApiRouter() {
       }
 
       const primary = matching[0];
+
+      // Fetch routes for every matching line in parallel. One failing line
+      // degrades to an empty route list instead of a 502 for everything.
+      const routesResults = await Promise.all(
+        matching.map((line) =>
+          cached(`routes:${line.lineCode}`, ROUTES_TTL_MS, () => fetchRoutesForLine(line.lineCode))
+            .catch(() => []),
+        ),
+      );
+
       const allRouteCodes = new Set();
       const routeNames = [];
-
-      for (const line of matching) {
-        const routes = await cached(`routes:${line.lineCode}`, ROUTES_TTL_MS, () =>
-          fetchRoutesForLine(line.lineCode),
-        );
+      routesResults.forEach((routes) => {
         for (const route of routes) {
           allRouteCodes.add(route.routeCode);
           routeNames.push({ routeCode: route.routeCode, routeName: route.routeName, routeNameEn: route.routeNameEn });
         }
-      }
+      });
 
-      const routeStops = [];
-      for (const rc of allRouteCodes) {
-        const stops = await cached(`stops:route:${rc}`, ROUTES_TTL_MS, () => fetchRouteStops(rc));
-        routeStops.push({ routeCode: rc, stops });
-      }
+      // Fetch stops for all routes in parallel; a single route failure
+      // degrades to an empty stop list for that route only.
+      const routeStops = await Promise.all(
+        [...allRouteCodes].map((rc) =>
+          cached(`stops:route:${rc}`, ROUTES_TTL_MS, () => fetchRouteStops(rc))
+            .then((stops) => ({ routeCode: rc, stops }))
+            .catch(() => ({ routeCode: rc, stops: [] })),
+        ),
+      );
 
       const stopsByRoute = Object.fromEntries(
         routeStops.map((rs) => [rs.routeCode, rs.stops]),
       );
 
-      res.setHeader('Cache-Control', 'public, max-age=600');
+      res.setHeader('Cache-Control', 'no-store');
       res.json({
         lineId,
         lineName: primary.lineName,
@@ -234,7 +234,7 @@ export function createApiRouter() {
       return;
     }
     const stops = searchStops(q);
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'no-store');
     res.json({ stops, index: indexStatus() });
   };
   router.get('/search-stops', handleSearchStops);

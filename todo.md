@@ -35,34 +35,28 @@ Known follow-up (from the same session): when a browser lacks WebGL2, `MapView` 
 
 ## Medium
 
-- [ ] **M1. Backend logic duplicated between `src/` and `functions/`, with drift already.**
-  `geo.js`, `oasaClient.js`, `cache.js`, `searchIndex.js` exist twice with subtle differences, and tests only cover the `src/` copies. *(The specific drift noted in the review — Express `/api/lines` lacking Greek↔Latin normalization — was fixed by the parallel session in `f929202`.)*
-  *Fix:* share one module between targets, or add parity tests for the `functions/` copies.
+- [x] **M1. Backend logic duplicated between `src/` and `functions/`, with drift already.** *(fixed via parity tests)*
+  Pages Functions cannot import outside `functions/`, so the copies must stay — but they can no longer drift silently. `test/geo.test.js` and `test/oasaClient.test.js` now run every case against both copies; `test/workers-cache.test.js` covers the Workers cache contract (singleflight, TTL, negative cache) with a stubbed Cache API. The one shared-module exception: `functions/_lib/normalize.js` is now the single server-side source for Greek↔Latin normalization, imported by `functions/api/lines.js`, `functions/api/lines/[lineId]/stops.js`, and `src/api.js`.
 
-- [ ] **M2. `GREEK_TO_LATIN` duplicated three times, with drift.**
-  In `functions/api/lines.js`, `functions/api/lines/[lineId]/stops.js`, and `app/src/components/SearchView/SearchView.jsx`. The client copy lacks accented vowels and `ϊ/ϋ` that the server copies have.
-  *Fix:* one shared module (or a test asserting equality).
+- [x] **M2. `GREEK_TO_LATIN` duplicated three times, with drift.** *(fixed)*
+  Server: one module, `functions/_lib/normalize.js`, imported by all three server call sites. Client: extracted to `app/src/normalizeLineId.js` with the complete map (accents + dialytics added). `test/normalize.test.js` asserts the maps are identical and normalize identically over a Greek/Latin corpus.
 
-- [ ] **M3. Sequential upstream fetches in `/api/lines/:lineId/stops`.**
-  `functions/api/lines/[lineId]/stops.js:51-54` fetches route stops one at a time with a 6s timeout each — up to 24s cold for a 4-route line, past the client timeout. Any single failure 502s the whole request instead of partial results.
-  *Fix:* `Promise.all` with batching (same pattern as the index builder); return partial results on route failure.
+- [x] **M3. Sequential upstream fetches in `/api/lines/:lineId/stops`.** *(fixed)*
+  Both Workers (`functions/api/lines/[lineId]/stops.js`) and Express (`src/api.js`) now fetch routes-for-line and stops-for-route in parallel (`Promise.all`), and a single route/line failure degrades to an empty list for that route instead of a 502 for the whole request. A line with 4 routes is now ~4× faster on a cold cache.
 
-- [x] **M4. UserWay SRI pin on a mutable URL will silently break.** *(fixed)*
-  The SRI pin was removed by the parallel session (`0e38b92`), and the Express CSP now matches `_headers` (this pass). Both halves of this item are closed.
+- [x] **M4. UserWay SRI pin on a mutable URL will silently break.** *(fixed earlier — pin removed by the parallel session, CSP parity fixed in the H-round)*
 
-- [ ] **M5. `Cache-Control` / `stale-while-revalidate` headers on Function responses are inert.**
-  `stops.js:66`, `arrivals.js:51`, `lines.js:55`, `lines/[lineId]/stops.js:70` set headers that Cloudflare ignores on Function responses (see H1) — they only affect browser caching of GETs.
-  *Fix:* route through `cached()` or drop the misleading headers.
+- [x] **M5. `Cache-Control` / `stale-while-revalidate` headers on Function responses are inert.** *(fixed)*
+  All API responses (stops, arrivals, lines, line stops, search-stops) on both backends now send `Cache-Control: no-store` — freshness is owned by the two server-side cache layers, and the app POSTs, which browsers never cache anyway. README Caching section documents this.
 
-- [ ] **M6. Silent partial index corruption.**
-  `doBuildIndex` swallows every per-line/per-route failure (`.catch(() => {})` / `.catch(() => [])`). After a partial OASA outage the build "succeeds" with an incomplete index, saves it to KV for 12h, and reports `ready: true`.
-  *Fix:* track a failure count and mark the index `degraded` above a threshold.
+- [x] **M6. Silent partial index corruption.** *(fixed)*
+  `doBuildIndex` (both backends) counts fetch attempts and failures; if ≥10% fail, the index is marked `degraded`, exposed via `indexStatus().degraded`, persisted in KV, and expires in 1h instead of 12h so it heals sooner. The frontend shows a soft "index incomplete" message when degraded. New translation keys `indexDegraded` (el/en).
 
-- [ ] **M7. Frontend nits.**
-  - `app/src/translations.js:48,135` — `privacyWhat3` has a stray leading space.
-  - Hardcoded `aria-label="Clear"` (SearchView ×2) and `"Switch language"` (AppShell) — not localized.
-  - `Legal.jsx:65` hardcodes `2026-08-03` as "last updated" — now stale.
-  - `functions/sitemap.xml.js:2` sets `lastmod` to today's date on every generation.
+- [x] **M7. Frontend nits.** *(fixed)*
+  - `privacyWhat3` indentation fixed in `translations.js`.
+  - `aria-label="Clear"` (SearchView ×2) and `"Switch language"` (AppShell) are now localized (`clearInput`, `switchLanguage`).
+  - Privacy "last updated" date moved to translations (`privacyUpdatedDate: 2026-10-21`) in `Legal.jsx`.
+  - `functions/sitemap.xml.js` uses a fixed `LAST_MODIFIED` constant instead of a per-request timestamp.
 
 ## Low
 
@@ -73,7 +67,7 @@ Known follow-up (from the same session): when a browser lacks WebGL2, `MapView` 
 - [ ] **L5.** `useStops.js` keeps showing the previous location's stops while new coordinates load.
 - [ ] **L6.** `AbortSignal.any` needs Safari 17.4+/Firefox 124+ — note for older Android WebViews in the TWA.
 - [ ] **L7.** `docs/code-review.md` open P3 item (`createStopElement` per stop per render in `MapView.jsx:14`) is still open and accurate.
-- [ ] **L8.** No tests exercise the `functions/` handlers or any frontend code; 29 tests cover `src/` logic only.
+- [ ] **L8.** No tests exercise the `functions/` request handlers or frontend components; the `functions/_lib` modules (geo, oasaClient, cache, normalize) are now covered by parity tests, and handler-level tests remain open.
 
 ## What not to change
 

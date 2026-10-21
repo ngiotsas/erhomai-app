@@ -70,7 +70,7 @@ async function handleStops(context) {
 
     return new Response(
       JSON.stringify({ origin: { lat, lng }, stops: nearest }),
-      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300, stale-while-revalidate=60' } },
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
     );
   } catch (err) {
     return new Response(

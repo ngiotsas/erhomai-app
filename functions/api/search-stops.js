@@ -23,7 +23,7 @@ async function handleSearch(context) {
   const stops = searchStops(q);
   return new Response(
     JSON.stringify({ stops, index: indexStatus() }),
-    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } },
+    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
   );
 }
 

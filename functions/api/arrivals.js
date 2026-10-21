@@ -48,6 +48,6 @@ export async function onRequestGet(context) {
 
   return new Response(
     JSON.stringify({ stopCode, fetchedAt: new Date().toISOString(), arrivals: enriched }),
-    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=10' } },
+    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
   );
 }
