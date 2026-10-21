@@ -32,7 +32,11 @@ function createStopElement() {
 function applySelectionStyle(markers, selectedStopCode) {
   Object.entries(markers).forEach(([code, marker]) => {
     const el = marker.getElement();
-    el.className = code === selectedStopCode ? `${styles.pin} ${styles.pinSelected}` : styles.pin;
+    // IMPORTANT: toggle only the app's own class. Assigning el.className
+    // here would wipe the maplibregl-marker / maplibregl-marker-anchor-*
+    // classes that MapLibre added, dropping position:absolute and stacking
+    // every pin in document flow (32px vertical offsets).
+    el.classList.toggle(styles.pinSelected, code === selectedStopCode);
   });
 }
 
